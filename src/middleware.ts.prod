@@ -1,0 +1,27 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+export function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
+  // Protéger /espace-client/* et /admin/*
+  if (path.startsWith('/espace-client') || path.startsWith('/admin')) {
+    // Vérifier la présence d'un cookie de session Supabase
+    const hasSession = req.cookies.getAll().some(
+      (c) => c.name.startsWith('sb-') && c.name.endsWith('-auth-token')
+    );
+
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/compte/connexion', req.url));
+    }
+
+    // Note: la vérification du rôle admin se fait côté page /admin
+    // car le middleware edge ne peut pas décoder le JWT sans lib externe
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ['/espace-client/:path*', '/admin/:path*'],
+};
