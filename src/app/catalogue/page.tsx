@@ -19,6 +19,8 @@ async function getProducts() {
     const { data, error } = await supabase
       .from('products')
       .select('*')
+      .eq('actif', true)
+      .or('exclu.is.null,exclu.eq.false')
       .order('nom')
       .range(from, from + pageSize - 1);
 

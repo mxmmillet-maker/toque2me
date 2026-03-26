@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { TypologySelector } from '@/components/agent/TypologySelector';
 import { QCMStep } from '@/components/agent/QCMStep';
 import { ResultsStep } from '@/components/agent/ResultsStep';
@@ -35,6 +35,34 @@ export default function ConfigurateurPage() {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ step, context, results }));
     } catch { /* ignore */ }
   }, [step, context, results]);
+
+  // Pousser chaque changement d'étape principale dans l'historique du navigateur
+  const [isPopState, setIsPopState] = useState(false);
+  useEffect(() => {
+    if (isPopState) {
+      setIsPopState(false);
+      return;
+    }
+    // Pousse un état dans l'historique sauf au premier rendu
+    window.history.pushState({ configurateurStep: step }, '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
+  // Écouter le popstate (back/forward du navigateur)
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state?.configurateurStep) {
+        setIsPopState(true);
+        setStep(e.state.configurateurStep);
+      } else if (e.state?.qcmSubStep !== undefined) {
+        // Le QCM gère ses propres sous-étapes via un callback
+        setIsPopState(true);
+        setStep('qcm');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   const fetchResults = async (ctx: any) => {
     setLoading(true);
@@ -82,10 +110,20 @@ export default function ConfigurateurPage() {
       budget_global: answers.budget_global,
       nb_personnes: answers.nb_personnes,
       usage: answers.usage,
+      style: answers.style,
+      type_etablissement: answers.type_etablissement,
     };
     setContext(ctx);
     await fetchResults(ctx);
     setStep('results');
+  };
+
+  const goToStep = (target: Step) => {
+    const order: Step[] = ['qcm', 'results', 'chat'];
+    // On ne peut revenir qu'aux étapes déjà visitées (pas avancer)
+    if (order.indexOf(target) < order.indexOf(step)) {
+      setStep(target);
+    }
   };
 
   return (
@@ -105,18 +143,25 @@ export default function ConfigurateurPage() {
           {(['qcm', 'results', 'chat'] as Step[]).map((s, i) => {
             const labels = ['Vos besoins', 'Sélection', 'Affinage'];
             const stepOrder = ['qcm', 'results', 'chat'];
+            const currentIdx = stepOrder.indexOf(step);
+            const isPast = currentIdx > i;
+            const isCurrent = step === s;
             return (
               <div key={s} className="flex items-center gap-2">
-                <div className="flex flex-col items-center gap-1">
+                <button
+                  onClick={() => isPast && goToStep(s)}
+                  disabled={!isPast}
+                  className="flex flex-col items-center gap-1 disabled:cursor-default"
+                >
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-                    step === s ? 'bg-neutral-900 text-white' :
-                    stepOrder.indexOf(step) > i ? 'bg-neutral-200 text-neutral-600' :
+                    isCurrent ? 'bg-neutral-900 text-white' :
+                    isPast ? 'bg-neutral-200 text-neutral-600 hover:bg-neutral-300 cursor-pointer' :
                     'bg-neutral-100 text-neutral-400'
                   }`}>
                     {i + 1}
                   </div>
-                  <span className="text-[10px] text-neutral-400">{labels[i]}</span>
-                </div>
+                  <span className={`text-[10px] ${isPast ? 'text-neutral-500' : 'text-neutral-400'}`}>{labels[i]}</span>
+                </button>
                 {i < 2 && <div className="w-8 h-px bg-neutral-200 mb-4" />}
               </div>
             );
@@ -124,7 +169,7 @@ export default function ConfigurateurPage() {
         </div>
 
         {step === 'qcm' && (
-          <QCMStep onComplete={handleQCMComplete} />
+          <QCMStep onComplete={handleQCMComplete} loading={loading} />
         )}
 
         {step === 'results' && (

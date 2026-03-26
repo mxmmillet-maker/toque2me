@@ -6,6 +6,7 @@ export interface ScoringCriteria {
   budget_global?: number;    // budget total HT
   nb_personnes?: number;     // effectif à équiper
   usage?: string;            // 'evenement' | 'quotidien' | 'image'
+  style?: string;            // 'casual' | 'chic' | 'sportswear' | 'classique'
   priorites?: {
     durabilite: number;
     origine: number;
@@ -28,6 +29,9 @@ export interface ScoredProduct {
   score_durabilite: number;
   score_premium: number;
   prix_vente_ht?: number;
+  genre: 'Homme' | 'Femme' | 'Enfant' | 'Unisexe';
+  stock_bas?: boolean;
+  variante?: { ref: string; genre: string; nom: string };
   score: number;
 }
 
@@ -36,6 +40,78 @@ const DEFAULT_PRIORITIES = {
   origine: 30,
   rapidite: 20,
 };
+
+/** Détecte le style vestimentaire depuis le nom et la description */
+export function detectStyle(nom: string, description: string, categorie: string): 'casual' | 'chic' | 'sportswear' | 'classique' {
+  const text = `${nom} ${description}`.toLowerCase();
+  const cat = categorie.toLowerCase();
+
+  // Détection marque (dernier mot du nom souvent = marque)
+  const marque = nom.split(' ').pop()?.toLowerCase() || '';
+
+  // Daiber distribue James & Nicholson (workwear) et Myrtle Beach (casquettes)
+  // On détecte la sous-marque dans le nom/description
+  const isJamesNicholson = text.includes('james') && text.includes('nicholson');
+  const isMyrtle = text.includes('myrtle') || text.includes('myrtle beach');
+  const effectiveMarque = isJamesNicholson ? 'james nicholson'
+    : isMyrtle ? 'myrtle beach'
+    : marque;
+
+  // Marques connues → style direct
+  const MARQUES_CLASSIQUE = ['cxs', 'portwest', 'cerva', 'deltaplus', 'coverguard', 'würth', 'james nicholson'];
+  const MARQUES_CHIC = ['stanley/stella', 'kariban', 'neoblu', 'native spirit', 'halfar'];
+  const MARQUES_SPORTSWEAR = ['spiro', 'tombo', 'gamegear'];
+
+  if (MARQUES_CLASSIQUE.includes(effectiveMarque)) return 'classique';
+  if (MARQUES_CHIC.some(m => text.includes(m) || effectiveMarque === m)) return 'chic';
+  if (MARQUES_SPORTSWEAR.includes(effectiveMarque)) return 'sportswear';
+
+  // FARE = parapluies, Daiber / Malfini / Myrtle Beach = lifestyle casual
+  if (['fare', 'myrtle beach', 'malfini'].includes(effectiveMarque)) return 'casual';
+
+  // Sportswear : matières techniques, sport, polyester/élasthanne
+  if (
+    text.includes('sport') || text.includes('running') || text.includes('fitness') ||
+    text.includes('respirant') || text.includes('stretch') || text.includes('technique') ||
+    text.includes('softshell') || text.includes('coupe-vent') || text.includes('windbreaker') ||
+    text.includes('spandex') || text.includes('lycra') ||
+    text.includes('mesh') || text.includes('dry fit') || text.includes('coolmax') ||
+    text.includes('fonctionnel') ||
+    (text.includes('polyester') && !text.includes('coton'))
+  ) return 'sportswear';
+
+  // Classique/Pro : vêtements de travail, EPI, chemises
+  if (
+    text.includes('travail') || text.includes('multirisque') || text.includes('sécurité') ||
+    text.includes('haute visibilité') || text.includes('chemise') || text.includes('oxford') ||
+    text.includes('cotte') || text.includes('blouse') || text.includes('salopette') ||
+    text.includes('ignifugé') || text.includes('antistatique') ||
+    text.includes('popeline') || text.includes('twill') ||
+    cat.includes('tablier') || cat.includes('pantalon')
+  ) return 'classique';
+
+  // Casual chic : polo piqué, coton peigné, coupes ajustées
+  if (
+    text.includes('polo') || text.includes('piqué') ||
+    text.includes('premium') || text.includes('luxury') || text.includes('supima') ||
+    text.includes('ajusté') || text.includes('slim') || text.includes('fitted') ||
+    text.includes('peigné') || text.includes('mercerisé') || text.includes('interlock') ||
+    text.includes('velours') || text.includes('french terry') ||
+    text.includes('col boutonné') || text.includes('patte de boutonnage')
+  ) return 'chic';
+
+  // Casual par défaut : t-shirts basiques, sweats, hoodies
+  return 'casual';
+}
+
+/** Détecte le genre depuis le nom du produit */
+export function detectGenre(nom: string): 'Homme' | 'Femme' | 'Enfant' | 'Unisexe' {
+  const lower = nom.toLowerCase();
+  if (lower.includes('enfant') || lower.includes('junior') || lower.includes('kids') || lower.includes('bébé')) return 'Enfant';
+  if (lower.includes(' femme') || lower.includes(' lady') || lower.includes(' ladies') || lower.includes(' fille')) return 'Femme';
+  if (lower.includes(' homme') || lower.includes(' men') || lower.includes(' garçon')) return 'Homme';
+  return 'Unisexe';
+}
 
 export function scoreProducts(
   products: any[],
@@ -62,6 +138,12 @@ export function scoreProducts(
 
   for (const p of products) {
     let score = 0;
+
+    // 0. Exclure les produits enfant + détecter genre et style
+    const genre = detectGenre(p.nom || '');
+    if (genre === 'Enfant') continue;
+    // Style manuel (depuis la base) prime sur la détection auto
+    const productStyle = p.style || detectStyle(p.nom || '', p.description || '', p.categorie || '');
 
     // 1. Filtre par pièces sélectionnées
     if (criteria.typologies && criteria.typologies.length > 0) {
@@ -109,6 +191,9 @@ export function scoreProducts(
     );
     if (isEurope) score += 10 * (priorites.origine / 100);
 
+    // Bonus style — fort bonus si le style du produit matche le style demandé
+    if (criteria.style && productStyle === criteria.style) score += 15;
+
     // Bonus secteur
     if (criteria.secteur && (p.secteurs || []).includes(criteria.secteur)) score += 8;
 
@@ -130,6 +215,8 @@ export function scoreProducts(
       score_durabilite: p.score_durabilite || 50,
       score_premium: p.score_premium || 50,
       prix_vente_ht: prixVente,
+      genre,
+      stock_bas: p.stock_bas ?? undefined,
       score,
     });
   }
@@ -139,5 +226,63 @@ export function scoreProducts(
 }
 
 export function getTop(products: ScoredProduct[], n: number): ScoredProduct[] {
-  return products.slice(0, n);
+  if (products.length <= n) return products;
+
+  // Clé de modèle : on retire Homme/Femme/Unisexe du nom pour détecter les variantes H/F
+  const modelKey = (nom: string) =>
+    nom.toLowerCase()
+      .replace(/\b(homme|femme|lady|ladies|men|women|unisexe|mixte)\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  // Index par modèle pour trouver les variantes H/F
+  const modelMap = new Map<string, ScoredProduct[]>();
+  for (const p of products) {
+    const mk = modelKey(p.nom);
+    if (!modelMap.has(mk)) modelMap.set(mk, []);
+    modelMap.get(mk)!.push(p);
+  }
+
+  // Attacher la variante H/F à chaque produit
+  for (const p of products) {
+    if (p.genre === 'Unisexe') continue;
+    const mk = modelKey(p.nom);
+    const variants = modelMap.get(mk) || [];
+    const other = variants.find(v => v.ref_fournisseur !== p.ref_fournisseur && v.genre !== p.genre && v.genre !== 'Unisexe');
+    if (other) {
+      p.variante = { ref: other.ref_fournisseur, genre: other.genre, nom: other.nom };
+    }
+  }
+
+  // Diversifier : un produit par catégorie, pas de doublons H/F du même modèle
+  const picked: ScoredProduct[] = [];
+  const seenCategories = new Set<string>();
+  const seenRefs = new Set<string>();
+  const seenModels = new Set<string>();
+
+  // Pass 1 : meilleur produit de chaque catégorie
+  for (const p of products) {
+    if (picked.length >= n) break;
+    const cat = p.categorie.toLowerCase();
+    const mk = modelKey(p.nom);
+    if (!seenCategories.has(cat) && !seenRefs.has(p.ref_fournisseur) && !seenModels.has(mk)) {
+      picked.push(p);
+      seenCategories.add(cat);
+      seenRefs.add(p.ref_fournisseur);
+      seenModels.add(mk);
+    }
+  }
+
+  // Pass 2 : compléter avec les meilleurs restants (sans doublons)
+  for (const p of products) {
+    if (picked.length >= n) break;
+    const mk = modelKey(p.nom);
+    if (!seenRefs.has(p.ref_fournisseur) && !seenModels.has(mk)) {
+      picked.push(p);
+      seenRefs.add(p.ref_fournisseur);
+      seenModels.add(mk);
+    }
+  }
+
+  return picked;
 }

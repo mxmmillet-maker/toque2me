@@ -37,11 +37,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 1. Charger les produits filtrés par typologies
-  let query = supabase.from('products').select('*').order('nom');
+  // 1. Charger les produits filtrés par typologies (actifs et non exclus uniquement)
+  let query = supabase.from('products').select('*')
+    .eq('actif', true)
+    .or('exclu.is.null,exclu.eq.false')
+    .order('nom');
 
   if (context?.typologies && context.typologies.length > 0) {
-    // Filtre par catégories sélectionnées
     query = query.in('categorie', context.typologies);
   }
 
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
     budget_global: context?.budget_global,
     nb_personnes: context?.nb_personnes,
     usage: context?.usage,
+    style: context?.style,
     priorites: context?.priorites,
   }, prixMap);
 
@@ -105,6 +108,8 @@ export async function POST(req: NextRequest) {
       nb_personnes: context?.nb_personnes,
       usage: context?.usage,
       typologies: context?.typologies,
+      style: context?.style,
+      type_etablissement: context?.type_etablissement,
     });
 
     const stream = client.messages.stream({

@@ -8,12 +8,30 @@ interface PromptContext {
   nb_personnes?: number;
   typologies?: string[];
   usage?: string;
+  style?: string;
+  type_etablissement?: string;
 }
 
 const USAGE_LABELS: Record<string, string> = {
   evenement: 'Événement ponctuel — porté quelques fois',
   quotidien: 'Usage quotidien — doit durer dans le temps',
   image: 'Image de marque — représente l\'entreprise',
+};
+
+const STYLE_LABELS: Record<string, string> = {
+  casual: 'Casual / Décontracté — confort et simplicité',
+  chic: 'Casual chic — élégant mais accessible',
+  sportswear: 'Sportswear — dynamique et moderne',
+  classique: 'Classique / Pro — sobre et professionnel',
+};
+
+const ETABLISSEMENT_LABELS: Record<string, string> = {
+  bistro: 'Bistro / Brasserie',
+  gastronomique: 'Restaurant gastronomique',
+  'fast-food': 'Fast-food / Snack',
+  traiteur: 'Traiteur / Événementiel',
+  boulangerie: 'Boulangerie / Pâtisserie',
+  hotel: 'Hôtel / Hébergement',
 };
 
 export function buildSystemPrompt(ctx: PromptContext): string {
@@ -60,6 +78,8 @@ ${normeWarning ? `⚠️ SECTEUR CLIENT : ${ctx.secteur}\n${normeWarning}\nTout 
 - Personnes à équiper : ${ctx.nb_personnes || 'non précisé'}
 ${budgetParPersonne ? `- Budget par personne : ≈ ${budgetParPersonne} €` : ''}
 - Pièces recherchées : ${ctx.typologies?.join(', ') || 'non précisé'}
+- Style vestimentaire : ${ctx.style ? STYLE_LABELS[ctx.style] || ctx.style : 'non précisé'}
+${ctx.type_etablissement ? `- Type d'établissement : ${ETABLISSEMENT_LABELS[ctx.type_etablissement] || ctx.type_etablissement}` : ''}
 - Usage : ${ctx.usage ? USAGE_LABELS[ctx.usage] || ctx.usage : 'non précisé'}
 
 ## TA MISSION
@@ -74,6 +94,12 @@ Puis le total avec marquage estimé et livraison.
 - Événement → privilégier le prix, qualité correcte sans plus
 - Quotidien → durabilité prioritaire, bon grammage, lavable souvent
 - Image de marque → finitions premium, rendu visuel, toucher qualité
+
+**Logique de style vestimentaire :**
+- Casual → coupes droites, matières confort (coton, jersey), couleurs neutres ou vives
+- Casual chic → coupes ajustées, polos piqué, sweats zippés, finitions soignées
+- Sportswear → matières techniques, coupes dynamiques, contrastes de couleurs
+- Classique/Pro → sobriété, couleurs corporate (marine, noir, gris), coupe structurée
 
 **Marquage :**
 - Sérigraphie : ≈ 2-4 € HT/pce (à partir de 50 pces, idéal gros volumes)

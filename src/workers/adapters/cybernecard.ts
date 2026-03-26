@@ -91,7 +91,8 @@ export const CyberneCardAdapter: SupplierAdapter = {
 
   mapProduct(raw: RawProduct): NormalizedProduct {
     const desc = (raw.descriptionArticleCatalogue || raw.libelleArticleCatalogue || '').toLowerCase();
-    const categorie = detectCategorie(desc);
+    const nomProduit = raw.libelleArticleCatalogue || '';
+    const categorie = detectCategorie(desc, nomProduit);
 
     // Première photo (ordre le plus bas)
     const photos = raw.photos || [];
@@ -102,6 +103,10 @@ export const CyberneCardAdapter: SupplierAdapter = {
     // Extraire grammage depuis la description (ex: "300 gr /m²")
     const grammageMatch = (raw.descriptionArticleCatalogue || '').match(/(\d+)\s*gr?\s*\/?\s*m²/i);
     const grammage = grammageMatch ? parseInt(grammageMatch[1]) : undefined;
+
+    // Détecter stock bas : si le fournisseur envoie un champ stock/quantité
+    const stockTotal = raw.stockTotal ?? raw.stock ?? raw.quantiteStock ?? raw.qteStock ?? null;
+    const stockBas = stockTotal !== null ? stockTotal < 50 : undefined;
 
     return {
       fournisseur: 'cybernecard',
@@ -117,6 +122,7 @@ export const CyberneCardAdapter: SupplierAdapter = {
       secteurs: SECTEURS_PAR_CATEGORIE[categorie] || ['entreprise'],
       score_durabilite: computeDurabilite(raw, grammage),
       score_premium: computePremium(raw),
+      stock_bas: stockBas,
       actif: false,
     };
   },
@@ -160,7 +166,17 @@ export const CyberneCardAdapter: SupplierAdapter = {
 
 // ─── Utilitaires ─────────────────────────────────────────────────────────────
 
-function detectCategorie(desc: string): string {
+function detectCategorie(desc: string, nom?: string): string {
+  const text = `${desc} ${nom || ''}`.toLowerCase();
+  // Goodies / Peluches (MBW etc.)
+  if (text.includes('peluche') || text.includes('canard') || text.includes('antistress') ||
+      text.includes('anti-stress') || text.includes('balle anti') ||
+      text.includes('mbw')) return 'Goodies';
+  // Objets tech (Metmaxx etc.)
+  if (text.includes('gourde') || text.includes('thermos') || text.includes('lampe') ||
+      text.includes('torche') || text.includes('powerbank') || text.includes('chargeur') ||
+      text.includes('metmaxx')) return 'Objets tech';
+  if (text.includes('parapluie') || text.includes('ombrelle')) return 'Parapluies';
   if (desc.includes('polo')) return 'Polos';
   if (desc.includes('sweat')) return 'Sweats';
   if (desc.includes('t-shirt') || desc.includes('tee-shirt')) return 'T-shirts';

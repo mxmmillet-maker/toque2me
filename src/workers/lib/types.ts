@@ -19,6 +19,7 @@ export interface NormalizedProduct {
   zones_marquage?: ZoneMarquage[];
   score_durabilite?: number;
   score_premium?: number;
+  stock_bas?: boolean;
   actif: boolean;
 }
 
