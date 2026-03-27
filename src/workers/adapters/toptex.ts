@@ -1,123 +1,187 @@
-import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid } from '../lib/types';
+import { SupplierAdapter, RawProduct, NormalizedProduct } from '../lib/types';
 
-// Marques et leurs scores de qualité
-const MARQUES_SCORES: Record<string, { durabilite: number; premium: number }> = {
-  'stanley/stella': { durabilite: 95, premium: 95 },
-  'kariban':        { durabilite: 80, premium: 80 },
-  "b&c":            { durabilite: 75, premium: 70 },
-  'fruit of the loom': { durabilite: 70, premium: 60 },
-  'gildan':         { durabilite: 65, premium: 55 },
-  'sg':             { durabilite: 65, premium: 55 },
-  'sol\'s':         { durabilite: 70, premium: 65 },
-  'result':         { durabilite: 78, premium: 72 },
+// ─── TopTex API v3 ────────────────────────────────────────────────────────────
+// Auth: POST /v3/authenticate {username, password} + header x-api-key → JWT (1h)
+// Catalogue: GET /v3/products/all?usage_right=b2b_uniquement&page_number=N
+// 50 produits/page, ~60 pages (~3000 produits)
+
+const API_BASE = process.env.TOPTEX_API_URL || 'https://api.toptex.io';
+const API_KEY = process.env.TOPTEX_API_KEY || '';
+const USERNAME = process.env.TOPTEX_USERNAME || 'tofr_karletmax';
+const PASSWORD = process.env.TOPTEX_PASSWORD || '';
+
+let cachedToken: string | null = null;
+let tokenExpiry = 0;
+
+async function getToken(): Promise<string> {
+  if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
+
+  const res = await fetch(`${API_BASE}/v3/authenticate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': API_KEY },
+    body: JSON.stringify({ username: USERNAME, password: PASSWORD }),
+  });
+
+  if (!res.ok) throw new Error(`TopTex auth failed: ${res.status}`);
+  const data = await res.json();
+  cachedToken = data.token;
+  tokenExpiry = Date.now() + 55 * 60 * 1000;
+  return cachedToken!;
+}
+
+async function fetchWithAuth(endpoint: string): Promise<Response> {
+  const token = await getToken();
+  return fetch(`${API_BASE}${endpoint}`, {
+    headers: { 'x-api-key': API_KEY, 'x-toptex-authorization': token },
+  });
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const fr = (field: any): string => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  return field.fr || field.en || '';
 };
+
+function mapCategorie(family: string, subFamily: string): string {
+  const sub = subFamily.toLowerCase();
+  const fam = family.toLowerCase();
+  if (sub.includes('polo')) return 'Polos';
+  if (sub.includes('sweat') || sub.includes('hoodie')) return 'Sweats';
+  if (sub.includes('t-shirt') || sub.includes('tee-shirt') || sub.includes('débardeur')) return 'T-shirts';
+  if (sub.includes('tablier')) return 'Tabliers';
+  if (sub.includes('veste') || sub.includes('jacket') || sub.includes('blouson') || sub.includes('parka') || sub.includes('manteau')) return 'Vestes';
+  if (sub.includes('pantalon') || sub.includes('pantacourt') || sub.includes('short') || sub.includes('bermuda')) return 'Pantalons';
+  if (sub.includes('chemise') || sub.includes('shirt')) return 'Chemises';
+  if (sub.includes('casquette') || sub.includes('bonnet') || sub.includes('chapeau') || sub.includes('bandana')) return 'Accessoires';
+  if (sub.includes('sac') || sub.includes('bag') || sub.includes('tote') || sub.includes('valise')) return 'Bagagerie';
+  if (sub.includes('parapluie') || sub.includes('ombrelle')) return 'Parapluies';
+  if (fam.includes('headwear') || fam.includes('accessoire')) return 'Accessoires';
+  if (fam.includes('bag')) return 'Bagagerie';
+  return 'Autres';
+}
+
+function parseCertifications(raw: RawProduct): string[] {
+  const certs: string[] = [];
+  if (raw.oekoTex === '1' || raw.oekoTex === true) certs.push('Oeko-Tex');
+  const checkField = (field: any, label: string) => {
+    const val = Array.isArray(field) ? field[0] : field;
+    const str = typeof val === 'object' ? val?.fr || '' : String(val || '');
+    if (str && str !== '' && str !== '0') certs.push(label);
+  };
+  checkField(raw.organic, 'Bio');
+  checkField(raw.recycled, 'Recyclé');
+  checkField(raw.vegan, 'Vegan');
+  return certs;
+}
+
+function parseNormes(raw: RawProduct): string[] {
+  const normes: string[] = [];
+  const check = (field: any, norme: string) => {
+    if (Array.isArray(field) && field.some((n: string) => n && n !== '')) normes.push(norme);
+  };
+  check(raw.hiVizStandards, 'EN-ISO-20471');
+  check(raw.antiStaticStandards, 'EN1149-5');
+  check(raw.fireResistanceStandards, 'EN-ISO-11612');
+  return normes;
+}
+
+function parseGrammage(weight: string | undefined): number | undefined {
+  if (!weight) return undefined;
+  const match = weight.match(/(\d+)\s*g/i);
+  return match ? parseInt(match[1]) : undefined;
+}
+
+function extractImageUrl(images: any): string {
+  if (!images) return '';
+  const list = Array.isArray(images) ? images : [images];
+  for (const img of list) {
+    if (typeof img === 'string') return img;
+    if (img?.url) return img.url;
+  }
+  return '';
+}
+
+const BRAND_SCORES: Record<string, { durabilite: number; premium: number }> = {
+  'stanley/stella': { durabilite: 90, premium: 95 },
+  'kariban': { durabilite: 80, premium: 80 },
+  'native spirit': { durabilite: 85, premium: 90 },
+  'neoblu': { durabilite: 75, premium: 85 },
+  'b&c': { durabilite: 75, premium: 70 },
+  'fruit of the loom': { durabilite: 65, premium: 55 },
+  'gildan': { durabilite: 60, premium: 50 },
+  'sol\'s': { durabilite: 70, premium: 65 },
+  'result': { durabilite: 75, premium: 70 },
+  'beechfield': { durabilite: 70, premium: 65 },
+  'bagbase': { durabilite: 70, premium: 65 },
+  'westford mill': { durabilite: 70, premium: 70 },
+  'bella+canvas': { durabilite: 75, premium: 80 },
+  'roly': { durabilite: 60, premium: 50 },
+  'k-up': { durabilite: 65, premium: 60 },
+  'proact': { durabilite: 70, premium: 65 },
+  'yoko': { durabilite: 75, premium: 60 },
+};
+
+function getScores(brand: string, grammage?: number) {
+  const key = brand.toLowerCase().replace(/[®™]/g, '').trim();
+  const match = Object.entries(BRAND_SCORES).find(([k]) => key.includes(k));
+  const scores = match ? { ...match[1] } : { durabilite: 60, premium: 55 };
+  if (grammage && grammage >= 280) scores.durabilite = Math.min(scores.durabilite + 15, 100);
+  else if (grammage && grammage >= 200) scores.durabilite = Math.min(scores.durabilite + 8, 100);
+  return scores;
+}
+
+// ─── Adapter ─────────────────────────────────────────────────────────────────
 
 export const ToptexAdapter: SupplierAdapter = {
   name: 'toptex',
 
   async fetchProducts(): Promise<RawProduct[]> {
-    // Toptex fournit généralement un flux XML ou CSV
-    // À adapter selon le format réel fourni par Toptex
-    const response = await fetch(process.env.TOPTEX_FEED_URL!, {
-      headers: {
-        'Authorization': `Bearer ${process.env.TOPTEX_API_KEY}`,
-      },
-    });
+    const allProducts: RawProduct[] = [];
+    let page = 1;
+    let hasMore = true;
 
-    if (!response.ok) throw new Error(`Toptex feed error: ${response.status}`);
+    while (hasMore) {
+      const response = await fetchWithAuth(
+        `/v3/products/all?usage_right=b2b_uniquement&page_number=${page}`
+      );
+      if (!response.ok) throw new Error(`TopTex API error: ${response.status}`);
 
-    const contentType = response.headers.get('content-type') || '';
-
-    if (contentType.includes('xml')) {
-      const xml = await response.text();
-      return parseXML(xml);
-    }
-
-    if (contentType.includes('json')) {
       const data = await response.json();
-      return Array.isArray(data) ? data : (data.products ?? []);
+      const items = data.items || [];
+      allProducts.push(...items);
+
+      hasMore = items.length >= 50;
+      page++;
+      if (page > 80) break; // Sécurité
     }
 
-    // CSV fallback
-    const csv = await response.text();
-    return parseCSV(csv);
+    return allProducts;
   },
 
   mapProduct(raw: RawProduct): NormalizedProduct {
-    const marqueKey = (raw.marque || raw.brand || '').toLowerCase();
-    const scores = Object.entries(MARQUES_SCORES)
-      .find(([k]) => marqueKey.includes(k))?.[1]
-      ?? { durabilite: 50, premium: 50 };
-
-    const origine = raw.origine || raw.country || raw.pays || '';
+    const family = fr(raw.family);
+    const subFamily = fr(raw.sub_family);
+    const brand = (raw.brand || '').replace(/[®™]/g, '').trim();
+    const grammage = parseGrammage(raw.averageWeight);
+    const scores = getScores(brand, grammage);
 
     return {
       fournisseur: 'toptex',
-      ref_fournisseur: raw.reference || raw.ref || raw.sku || '',
-      nom: raw.designation || raw.nom || raw.name || '',
-      description: raw.description || '',
-      categorie: raw.famille || raw.categorie || raw.category || '',
-      image_url: raw.photo || raw.image_url || raw.image || '',
-      grammage: raw.grammage ? parseInt(raw.grammage) : undefined,
-      origine,
+      ref_fournisseur: raw.catalogReference || raw.supplierReference || '',
+      nom: `${fr(raw.designation)} ${brand}`.trim(),
+      description: fr(raw.description),
+      categorie: mapCategorie(family, subFamily),
+      image_url: extractImageUrl(raw.images),
+      grammage,
+      origine: '',
       certifications: parseCertifications(raw),
-      normes: [],
-      secteurs: ['entreprise', 'association'],
+      normes: parseNormes(raw),
+      secteurs: ['entreprise'],
       score_durabilite: scores.durabilite,
       score_premium: scores.premium,
-      actif: false,
+      actif: false, // Activation manuelle après review
     };
   },
 };
-
-// ─── Parsers ──────────────────────────────────────────────────────────────────
-
-function parseXML(xml: string): RawProduct[] {
-  // Parser XML basique — à remplacer par 'fast-xml-parser' si besoin
-  const products: RawProduct[] = [];
-  const productMatches = xml.match(/<product[^>]*>([\s\S]*?)<\/product>/gi) || [];
-
-  for (const block of productMatches) {
-    const getField = (tag: string) => {
-      const match = block.match(new RegExp(`<${tag}[^>]*>([^<]*)<\/${tag}>`, 'i'));
-      return match ? match[1].trim() : '';
-    };
-
-    products.push({
-      reference: getField('reference') || getField('ref'),
-      designation: getField('designation') || getField('nom') || getField('name'),
-      description: getField('description'),
-      famille: getField('famille') || getField('categorie'),
-      marque: getField('marque') || getField('brand'),
-      grammage: getField('grammage'),
-      origine: getField('origine') || getField('pays'),
-      photo: getField('photo') || getField('image'),
-      labels: getField('labels') || getField('certifications'),
-    });
-  }
-
-  return products;
-}
-
-function parseCSV(csv: string): RawProduct[] {
-  const lines = csv.split('\n').filter(Boolean);
-  if (lines.length < 2) return [];
-
-  const headers = lines[0].split(';').map(h => h.trim().toLowerCase());
-
-  return lines.slice(1).map(line => {
-    const values = line.split(';');
-    const product: RawProduct = {};
-    headers.forEach((header, i) => {
-      product[header] = values[i]?.trim() || '';
-    });
-    return product;
-  });
-}
-
-function parseCertifications(raw: RawProduct): string[] {
-  const labels = raw.labels || raw.certifications || raw.labels_qualite || '';
-  if (Array.isArray(labels)) return labels;
-  if (!labels) return [];
-  return labels.split(/[,;|]/).map((s: string) => s.trim()).filter(Boolean);
-}
