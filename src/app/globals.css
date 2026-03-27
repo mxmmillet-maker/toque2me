@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 0 0% 13%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 13%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 13%;
+    --background: 40 20% 99%;
+    --foreground: 30 15% 10%;
+    --card: 40 15% 99%;
+    --card-foreground: 30 15% 10%;
+    --popover: 40 15% 99%;
+    --popover-foreground: 30 15% 10%;
+    --primary: 25 16% 15%;
+    --primary-foreground: 40 20% 98%;
+    --secondary: 35 10% 95%;
+    --secondary-foreground: 25 16% 15%;
+    --muted: 35 10% 95%;
+    --muted-foreground: 30 8% 45%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 25 16% 15%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 0 0% 55%;
+    --border: 30 10% 88%;
+    --input: 30 10% 88%;
+    --ring: 25 16% 35%;
     --radius: 0.625rem;
   }
 
@@ -32,6 +32,94 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Design System Components                                          */
+/* ------------------------------------------------------------------ */
+
+@layer components {
+  /* ---- Buttons ---- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2
+           rounded-md px-4 py-2 text-sm font-medium
+           transition-colors duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand-900 text-white
+           hover:bg-brand-800
+           active:bg-brand-950;
+  }
+
+  .btn-secondary {
+    @apply btn border border-brand-200 bg-transparent text-brand-900
+           hover:bg-brand-50
+           active:bg-brand-100;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-brand-700
+           hover:bg-brand-100
+           active:bg-brand-200;
+  }
+
+  /* ---- Cards ---- */
+  .card {
+    @apply rounded-lg border bg-card p-6;
+  }
+
+  .card-interactive {
+    @apply card cursor-pointer transition-shadow duration-150
+           hover:shadow-md;
+  }
+
+  /* ---- Badges ---- */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5
+           text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-success-100 text-success-800;
+  }
+
+  .badge-warning {
+    @apply badge bg-warning-100 text-warning-800;
+  }
+
+  /* ---- Typography ---- */
+  .heading-xl {
+    @apply text-3xl font-bold tracking-tight text-brand-950
+           sm:text-4xl;
+  }
+
+  .heading-lg {
+    @apply text-2xl font-semibold tracking-tight text-brand-950;
+  }
+
+  .heading-md {
+    @apply text-lg font-semibold text-brand-900;
+  }
+
+  .text-body {
+    @apply text-base leading-relaxed text-brand-700;
+  }
+
+  .text-caption {
+    @apply text-sm text-muted-foreground;
+  }
+
+  /* ---- Form ---- */
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background
+           px-3 py-2 text-sm
+           placeholder:text-muted-foreground
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:cursor-not-allowed disabled:opacity-50;
   }
 }
 

@@ -30,7 +30,7 @@ function Select({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       aria-label={label}
-      className="px-3 py-2.5 bg-white border border-neutral-200 rounded-lg text-sm text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-shadow cursor-pointer"
+      className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-shadow cursor-pointer"
     >
       <option value="">{label}</option>
       {options.map((opt) => (
@@ -72,7 +72,7 @@ export function FilterBar({ filters, onChange, categories, secteurs, origines }:
       {hasFilters && (
         <button
           onClick={() => onChange({ categorie: '', secteur: '', origine: '' })}
-          className="text-sm text-neutral-500 hover:text-neutral-900 underline underline-offset-2 transition-colors"
+          className="text-sm text-slate-500 hover:text-neutral-900 underline underline-offset-2 transition-colors"
         >
           Réinitialiser
         </button>

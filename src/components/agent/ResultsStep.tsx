@@ -124,7 +124,11 @@ export function ResultsStep({ products, onRefine }: ResultsStepProps) {
           Affiner avec l&apos;assistant
         </button>
         <Link
-          href={`/calculateur?ref=${products[0].ref_fournisseur}`}
+          href={`/calculateur?refs=${products.map(p => {
+            // Si variante, inclure les deux refs séparées par un ~
+            if (p.variante) return `${p.ref_fournisseur}~${p.variante.ref}`;
+            return p.ref_fournisseur;
+          }).join(',')}`}
           className="flex-1 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-lg text-center hover:bg-neutral-800 transition-colors"
         >
           Demander un devis

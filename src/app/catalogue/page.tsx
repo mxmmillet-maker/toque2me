@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
 import { getMargin } from '@/lib/pricing';
+import Link from 'next/link';
 
 export const revalidate = 3600;
 
@@ -85,12 +86,19 @@ export default async function CataloguePage({
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-neutral-900 tracking-tight">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-16">
+        {/* Breadcrumb */}
+        <nav className="mb-6 flex items-center gap-1.5 text-xs text-slate-400">
+          <Link href="/" className="hover:text-neutral-900 transition-colors">Accueil</Link>
+          <span>/</span>
+          <span className="text-slate-600">Catalogue</span>
+        </nav>
+
+        <div className="mb-10">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 tracking-tight">
             Catalogue
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-2 text-sm text-slate-500">
             {products.length} produits — Textile et objets personnalisables pour professionnels
           </p>
         </div>

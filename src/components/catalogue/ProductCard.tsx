@@ -13,7 +13,7 @@ export function ProductCard({ product, packMode }: ProductCardProps) {
     : `/catalogue/${product.ref_fournisseur}`;
 
   return (
-    <Link href={href} className="group bg-white border border-neutral-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-neutral-200 transition-all duration-300 block">
+    <Link href={href} className="group bg-white border border-slate-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-slate-200 transition-all duration-300 block">
       <div className="relative aspect-square bg-neutral-50 overflow-hidden">
         {product.image_url ? (
           <Image
@@ -24,7 +24,7 @@ export function ProductCard({ product, packMode }: ProductCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-neutral-300 text-sm">
+          <div className="flex items-center justify-center h-full text-slate-300 text-sm">
             Pas de photo
           </div>
         )}
@@ -52,39 +52,39 @@ export function ProductCard({ product, packMode }: ProductCardProps) {
           {product.nom}
         </h3>
 
-        <p className="text-xs text-neutral-500 line-clamp-2">
+        <p className="text-xs text-slate-500 line-clamp-2">
           {product.description}
         </p>
 
         <div className="flex items-center gap-2 pt-1">
           {product.grammage && (
-            <span className="text-[11px] text-neutral-400">
+            <span className="text-[11px] text-slate-400">
               {product.grammage}g/m²
             </span>
           )}
           {product.grammage && product.origine && (
-            <span className="text-neutral-200">·</span>
+            <span className="text-slate-200">·</span>
           )}
           {product.origine && (
-            <span className="text-[11px] text-neutral-400">
+            <span className="text-[11px] text-slate-400">
               {product.origine}
             </span>
           )}
         </div>
 
-        <div className="flex items-baseline justify-between pt-2 border-t border-neutral-50">
+        <div className="flex items-baseline justify-between pt-2 border-t border-slate-50">
           {product.prix_from ? (
             <div>
-              <span className="text-xs text-neutral-400">À partir de </span>
+              <span className="text-xs text-slate-400">À partir de </span>
               <span className="text-base font-semibold text-neutral-900">
                 {product.prix_from.toFixed(2)}&nbsp;€
               </span>
-              <span className="text-xs text-neutral-400"> HT</span>
+              <span className="text-xs text-slate-400"> HT</span>
             </div>
           ) : (
-            <span className="text-xs text-neutral-400">Prix sur devis</span>
+            <span className="text-xs text-slate-400">Prix sur devis</span>
           )}
-          <span className="text-xs font-medium text-neutral-600 group-hover:text-neutral-900 underline underline-offset-2 transition-colors">
+          <span className="text-xs font-medium text-slate-600 group-hover:text-neutral-900 underline underline-offset-2 transition-colors">
             Voir
           </span>
         </div>

@@ -75,7 +75,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
       />
 
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-400">
+        <p className="text-sm text-slate-400">
           {filtered.length} produit{filtered.length !== 1 ? 's' : ''}
           {totalPages > 1 && ` — page ${currentPage} / ${totalPages}`}
         </p>
@@ -88,7 +88,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
 
       {filtered.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-neutral-400 text-sm">Aucun produit ne correspond à votre recherche.</p>
+          <p className="text-slate-400 text-sm">Aucun produit ne correspond à votre recherche.</p>
         </div>
       ) : (
         <>
@@ -103,7 +103,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 text-sm border border-neutral-200 rounded-lg hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Précédent
               </button>
@@ -127,7 +127,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
                     className={`w-9 h-9 text-sm rounded-lg transition-colors ${
                       pageNum === currentPage
                         ? 'bg-neutral-900 text-white'
-                        : 'border border-neutral-200 hover:bg-neutral-50'
+                        : 'border border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     {pageNum}
@@ -138,7 +138,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 text-sm border border-neutral-200 rounded-lg hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Suivant
               </button>
