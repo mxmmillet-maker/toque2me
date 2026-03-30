@@ -5,6 +5,8 @@ import { scoreProducts, getTop } from '@/lib/agent/scoring';
 import { buildSystemPrompt } from '@/lib/agent/prompt';
 import { getMargin } from '@/lib/pricing';
 
+export const maxDuration = 30; // Vercel Hobby max = 60s
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // T-24 : timeout 5s
+    const timeout = setTimeout(() => controller.abort(), 25000); // 25s (Vercel Hobby max = 60s)
 
     const systemPrompt = buildSystemPrompt({
       products: top15,
