@@ -1,5 +1,17 @@
 import Link from 'next/link';
 
+const CATEGORIES = [
+  { label: 'T-shirts', href: '/catalogue?categorie=T-shirts' },
+  { label: 'Polos', href: '/catalogue?categorie=Polos' },
+  { label: 'Sweats', href: '/catalogue?categorie=Sweats' },
+  { label: 'Vestes', href: '/catalogue?categorie=Vestes' },
+  { label: 'Pantalons', href: '/catalogue?categorie=Pantalons' },
+  { label: 'Chemises', href: '/catalogue?categorie=Chemises' },
+  { label: 'Tabliers', href: '/catalogue?categorie=Tabliers' },
+  { label: 'Accessoires', href: '/catalogue?categorie=Accessoires' },
+  { label: 'Bagagerie', href: '/catalogue?categorie=Bagagerie' },
+];
+
 const METIERS = [
   { icon: '🍽️', label: 'Restaurateurs', sub: 'Tabliers, polos, toques — conformité HACCP', href: '/restaurateurs' },
   { icon: '🦺', label: 'BTP & Artisans', sub: 'Haute visibilité, antistatique, flammes', href: '/btp' },
@@ -42,6 +54,29 @@ export default function Home() {
             >
               Configurer mon pack
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Catégories produits */}
+      <section className="border-b border-slate-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <Link
+              href="/catalogue"
+              className="flex-shrink-0 px-4 py-2 text-sm font-medium text-neutral-900 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors"
+            >
+              Tout voir
+            </Link>
+            {CATEGORIES.map((cat) => (
+              <Link
+                key={cat.label}
+                href={cat.href}
+                className="flex-shrink-0 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-full hover:border-slate-400 hover:text-neutral-900 transition-colors"
+              >
+                {cat.label}
+              </Link>
+            ))}
           </div>
         </div>
       </section>

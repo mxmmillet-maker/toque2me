@@ -37,7 +37,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
   );
 
   const filtered = useMemo(() => {
-    return products.filter((p) => {
+    const result = products.filter((p) => {
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${p.nom} ${p.description} ${p.categorie} ${p.ref_fournisseur}`.toLowerCase();
@@ -48,6 +48,18 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
       if (filters.origine && p.origine !== filters.origine) return false;
       return true;
     });
+
+    // Tri : produits avec image d'abord, puis par score premium desc
+    result.sort((a, b) => {
+      const aImg = a.image_url ? 1 : 0;
+      const bImg = b.image_url ? 1 : 0;
+      if (aImg !== bImg) return bImg - aImg;
+      const aScore = (a.score_premium || 0) + (a.score_durabilite || 0);
+      const bScore = (b.score_premium || 0) + (b.score_durabilite || 0);
+      return bScore - aScore;
+    });
+
+    return result;
   }, [products, search, filters]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -58,8 +70,50 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
   const handleSearch = (v: string) => { setSearch(v); setPage(1); };
   const handleFilters = (f: typeof filters) => { setFilters(f); setPage(1); };
 
+  const CATEGORY_ORDER = ['T-shirts', 'Polos', 'Sweats', 'Vestes', 'Pantalons', 'Chemises', 'Tabliers', 'Accessoires', 'Bagagerie', 'Parapluies', 'Goodies', 'Objets tech'];
+
+  const sortedCategories = useMemo(() => {
+    return categories.sort((a, b) => {
+      const ia = CATEGORY_ORDER.indexOf(a);
+      const ib = CATEGORY_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories]);
+
   return (
     <div className="space-y-6">
+      {/* Catégories visuelles */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <button
+          onClick={() => handleFilters({ ...filters, categorie: '' })}
+          className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+            !filters.categorie
+              ? 'bg-neutral-900 text-white'
+              : 'text-slate-600 border border-slate-200 hover:border-slate-400 hover:text-neutral-900'
+          }`}
+        >
+          Tout ({products.length})
+        </button>
+        {sortedCategories.map((cat) => {
+          const count = products.filter((p) => p.categorie === cat).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={cat}
+              onClick={() => handleFilters({ ...filters, categorie: cat })}
+              className={`flex-shrink-0 px-4 py-2 text-sm font-medium rounded-full transition-colors ${
+                filters.categorie === cat
+                  ? 'bg-neutral-900 text-white'
+                  : 'text-slate-600 border border-slate-200 hover:border-slate-400 hover:text-neutral-900'
+              }`}
+            >
+              {cat} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <SearchBar value={search} onChange={handleSearch} />
