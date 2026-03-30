@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { TypologySelector } from '@/components/agent/TypologySelector';
+import { useState, useEffect } from 'react';
 import { QCMStep } from '@/components/agent/QCMStep';
 import { ResultsStep } from '@/components/agent/ResultsStep';
 import { ChatStep } from '@/components/agent/ChatStep';

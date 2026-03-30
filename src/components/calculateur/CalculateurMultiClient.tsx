@@ -76,7 +76,7 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
   };
 
   const [lines, setLines] = useState<LinePricing[]>(buildInitialLines);
-  const [variantePricing, setVariantePricing] = useState<Map<string, { prix_unitaire_ht: number; total_ht: number }>>(new Map());
+  const [, setVariantePricing] = useState<Map<string, { prix_unitaire_ht: number; total_ht: number }>>(new Map());
   const [submitting, setSubmitting] = useState(false);
 
   const fetchPricing = useCallback(async (ref: string, qty: number) => {

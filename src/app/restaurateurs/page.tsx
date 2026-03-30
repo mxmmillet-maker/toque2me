@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -39,6 +39,14 @@ const MARQUAGE_DELAIS: Record<string, string> = {
 };
 
 export default function RestaurateursPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <RestaurateursContent />
+    </Suspense>
+  );
+}
+
+function RestaurateursContent() {
   const searchParams = useSearchParams();
   const [nbPersonnes, setNbPersonnes] = useState(10);
   const [pack, setPack] = useState(DEFAULT_PACK);
