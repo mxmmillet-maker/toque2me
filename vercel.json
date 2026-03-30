@@ -1,68 +1,20 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/sync-cybernecard",
-      "schedule": "0 2 * * *"
-    },
-    {
-      "path": "/api/cron/sync-toptex",
-      "schedule": "30 2 * * *"
-    },
-    {
-      "path": "/api/cron/sync-makito",
-      "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/cron/sync-bic",
-      "schedule": "30 3 * * *"
-    },
-    {
-      "path": "/api/cron/cleanup-rgpd",
-      "schedule": "0 4 * * 0"
-    },
-    {
-      "path": "/api/cron/security-audit",
-      "schedule": "0 3 * * 0"
-    },
-    {
-      "path": "/api/cron/rls-checker",
-      "schedule": "30 3 * * 0"
-    },
-    {
-      "path": "/api/cron/dependency-audit",
-      "schedule": "0 6 * * 1"
-    },
-    {
-      "path": "/api/cron/health-check",
-      "schedule": "0 */6 * * *"
-    },
-    {
-      "path": "/api/cron/import-csv",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/seo-sitemap-ping",
-      "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/cron/seo-content-generator",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/seo-meta-checker",
-      "schedule": "0 5 * * 0"
-    },
-    {
-      "path": "/api/cron/email-confirmation-devis",
-      "schedule": "0 */2 * * *"
-    },
-    {
-      "path": "/api/cron/email-relance",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/analytics-report",
-      "schedule": "0 8 * * 1"
-    }
+    { "path": "/api/cron/sync-cybernecard", "schedule": "0 2 * * *" },
+    { "path": "/api/cron/sync-toptex", "schedule": "30 2 * * *" },
+    { "path": "/api/cron/sync-makito", "schedule": "0 3 * * *" },
+    { "path": "/api/cron/sync-bic", "schedule": "30 3 * * *" },
+    { "path": "/api/cron/cleanup-rgpd", "schedule": "0 4 * * 0" },
+    { "path": "/api/cron/seo-sitemap-ping", "schedule": "30 4 * * *" },
+    { "path": "/api/cron/seo-content-generator", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/seo-meta-checker", "schedule": "0 5 * * 0" },
+    { "path": "/api/cron/health-check", "schedule": "0 6 * * *" },
+    { "path": "/api/cron/import-csv", "schedule": "30 6 * * *" },
+    { "path": "/api/cron/email-confirmation-devis", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/email-relance", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/analytics-report", "schedule": "0 8 * * 1" },
+    { "path": "/api/cron/security-audit", "schedule": "0 3 * * 0" },
+    { "path": "/api/cron/rls-checker", "schedule": "30 3 * * 0" },
+    { "path": "/api/cron/dependency-audit", "schedule": "0 6 * * 1" }
   ]
 }
