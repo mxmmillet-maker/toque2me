@@ -30,6 +30,7 @@ const PIECES = [
   { id: 'Sweats', label: 'Sweats / Hoodies' },
   { id: 'Vestes', label: 'Vestes' },
   { id: 'Tabliers', label: 'Tabliers' },
+  { id: 'Chef', label: 'Chef / Cuisine pro' },
   { id: 'Pantalons', label: 'Pantalons' },
   { id: 'Accessoires', label: 'Casquettes / Bonnets' },
   { id: 'Bagagerie', label: 'Sacs / Tote bags' },

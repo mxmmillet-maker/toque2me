@@ -8,6 +8,7 @@ const CATEGORIES = [
   { label: 'Pantalons', href: '/catalogue?categorie=Pantalons' },
   { label: 'Chemises', href: '/catalogue?categorie=Chemises' },
   { label: 'Tabliers', href: '/catalogue?categorie=Tabliers' },
+  { label: 'Chef', href: '/catalogue?categorie=Chef' },
   { label: 'Accessoires', href: '/catalogue?categorie=Accessoires' },
   { label: 'Bagagerie', href: '/catalogue?categorie=Bagagerie' },
 ];

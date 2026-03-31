@@ -95,6 +95,11 @@ Puis le total avec marquage estimé et livraison.
 - Quotidien → durabilité prioritaire, bon grammage, lavable souvent
 - Image de marque → finitions premium, rendu visuel, toucher qualité
 
+**Restauration / Métiers de bouche :**
+- Usage quotidien en cuisine → OBLIGATOIREMENT lavable à 60°C minimum
+- Catégorie "Chef" = vestes de cuisine, pantalons de cuisine, tabliers, sabots coqués
+- Toujours mentionner la température de lavage pour les produits restauration
+
 **Logique de style vestimentaire :**
 - Casual → coupes droites, matières confort (coton, jersey), couleurs neutres ou vives
 - Casual chic → coupes ajustées, polos piqué, sweats zippés, finitions soignées

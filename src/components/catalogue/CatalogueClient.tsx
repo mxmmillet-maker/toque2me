@@ -70,7 +70,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
   const handleSearch = (v: string) => { setSearch(v); setPage(1); };
   const handleFilters = (f: typeof filters) => { setFilters(f); setPage(1); };
 
-  const CATEGORY_ORDER = ['T-shirts', 'Polos', 'Sweats', 'Vestes', 'Pantalons', 'Chemises', 'Tabliers', 'Accessoires', 'Bagagerie', 'Parapluies', 'Goodies', 'Objets tech'];
+  const CATEGORY_ORDER = ['T-shirts', 'Polos', 'Sweats', 'Vestes', 'Pantalons', 'Chemises', 'Tabliers', 'Chef', 'Accessoires', 'Bagagerie', 'Parapluies', 'Goodies', 'Objets tech'];
 
   const sortedCategories = useMemo(() => {
     return categories.sort((a, b) => {
