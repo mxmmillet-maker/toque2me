@@ -98,6 +98,8 @@ function extractImageUrl(images: any): string {
   const list = Array.isArray(images) ? images : [images];
   for (const img of list) {
     if (typeof img === 'string') return img;
+    // Préférer url_image (CDN direct) à url (lien de téléchargement)
+    if (img?.url_image) return img.url_image;
     if (img?.url) return img.url;
   }
   return '';
