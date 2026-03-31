@@ -123,7 +123,6 @@ export const CyberneCardAdapter: SupplierAdapter = {
       score_durabilite: computeDurabilite(raw, grammage),
       score_premium: computePremium(raw),
       stock_bas: stockBas,
-      actif: false,
     };
   },
 

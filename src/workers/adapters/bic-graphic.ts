@@ -27,7 +27,6 @@ export const BicGraphicAdapter: SupplierAdapter = {
       secteurs: ['entreprise'],
       score_durabilite: 50,
       score_premium: 60,
-      actif: false,
     };
   },
 };

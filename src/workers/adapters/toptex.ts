@@ -183,7 +183,8 @@ export const ToptexAdapter: SupplierAdapter = {
       secteurs: ['entreprise'],
       score_durabilite: scores.durabilite,
       score_premium: scores.premium,
-      actif: false, // Activation manuelle après review
+      // actif n'est pas inclus — le sync engine fait un upsert
+      // et on ne veut pas écraser le statut actif/exclu existant
     };
   },
 };

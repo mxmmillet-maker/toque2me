@@ -27,7 +27,6 @@ export const MakitoAdapter: SupplierAdapter = {
       secteurs: ['entreprise', 'association'],
       score_durabilite: 55,
       score_premium: 55,
-      actif: false,
     };
   },
 };
