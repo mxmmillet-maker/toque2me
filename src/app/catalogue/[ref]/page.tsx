@@ -137,6 +137,29 @@ export default async function ProductPage({ params, searchParams }: { params: { 
               )}
             </div>
 
+            {/* Couleurs disponibles */}
+            {product.couleurs && product.couleurs.length > 0 && (
+              <div className="mb-6 pb-6 border-b border-neutral-100">
+                <h2 className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-3">
+                  {product.couleurs.length} couleur{product.couleurs.length > 1 ? 's' : ''} disponible{product.couleurs.length > 1 ? 's' : ''}
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  {product.couleurs.map((c: { nom: string; hexa: string }) => (
+                    <div
+                      key={c.nom}
+                      className="group flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-full hover:border-slate-400 transition-colors cursor-default"
+                    >
+                      <span
+                        className="w-4 h-4 rounded-full border border-slate-200"
+                        style={{ backgroundColor: c.hexa || '#ccc' }}
+                      />
+                      <span className="text-xs text-slate-600">{c.nom}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Description */}
             <div className="mb-6">
               <p className="text-sm leading-relaxed text-neutral-600 whitespace-pre-line">
