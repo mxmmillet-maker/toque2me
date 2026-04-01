@@ -29,6 +29,7 @@ const PIECES = [
   { id: 'Polos', label: 'Polos' },
   { id: 'Sweats', label: 'Sweats / Hoodies' },
   { id: 'Vestes', label: 'Vestes' },
+  { id: 'Chemises', label: 'Chemises' },
   { id: 'Tabliers', label: 'Tabliers' },
   { id: 'Chef', label: 'Chef / Cuisine pro' },
   { id: 'Pantalons', label: 'Pantalons' },
