@@ -53,6 +53,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
    - Public : ${p.tags?.public_cible?.join(', ') || 'tous'}
    - Lavage max : ${p.tags?.lavage_max || '?'}°C
    - Marquage : ${p.tags?.techniques_marquage?.join(', ') || 'N/A'}
+   - Qualité matière : ${p.tags?.qualite_matiere || 'N/A'}
    - Gamme : ${p.tags?.niveau_gamme || 'N/A'} | Saison : ${p.tags?.saison?.join(', ') || 'N/A'}`
     )
     .join('\n\n');
@@ -97,6 +98,12 @@ Puis le total avec marquage estimé et livraison.
 - Événement → privilégier le prix, qualité correcte sans plus
 - Quotidien → durabilité prioritaire, bon grammage, lavable souvent
 - Image de marque → finitions premium, rendu visuel, toucher qualité
+
+**Qualité matière — points d'attention :**
+- Coton peigné (combed) = doux et premium MAIS laisse des fibres avant le premier lavage → prévenir le client de laver avant première utilisation si mix clair/foncé
+- Ring-spun = meilleur compromis qualité/résistance, peu de peluche
+- Open-end = entrée de gamme, bouloche plus vite, à réserver aux événements courts
+- Interlock = double tricot, plus lourd et stable, pas de roulage des bords
 
 **Restauration / Métiers de bouche :**
 - Usage quotidien en cuisine → OBLIGATOIREMENT lavable à 60°C minimum

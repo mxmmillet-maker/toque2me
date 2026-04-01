@@ -41,6 +41,7 @@ export interface ScoredProduct {
     niveau_gamme: string;
     lavage_max: number;
     techniques_marquage: string[];
+    qualite_matiere: string;
   };
   score: number;
 }
@@ -247,6 +248,7 @@ export function scoreProducts(
         niveau_gamme: productTags.niveau_gamme,
         lavage_max: productTags.lavage_max,
         techniques_marquage: productTags.techniques_marquage,
+        qualite_matiere: productTags.qualite_matiere,
       },
       score,
     });

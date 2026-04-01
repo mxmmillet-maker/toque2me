@@ -27,6 +27,7 @@ export interface ProductTags {
   lavage_max: number;     // 30, 40, 60, 95
   style: string[];        // casual, chic, sportswear, workwear
   public_cible: string[]; // restauration, btp, corporate, associatif, hotellerie
+  qualite_matiere: QualiteMatiere; // basique, standard, premium, haut_de_gamme
 }
 
 // ─── Détection taxonomie ─────────────────────────────────────────────────────
@@ -72,11 +73,9 @@ function detectType(nom: string, categorie: string): string {
 function detectMatiere(description: string): string {
   const lower = description.toLowerCase();
 
-  // Matières techniques
   if (lower.includes('softshell') || lower.includes('membrane')) return 'technique';
   if (lower.includes('polyamide') || lower.includes('nylon')) return 'technique';
 
-  // Extraction composition
   const cotonMatch = lower.match(/(\d+)\s*%\s*coton/);
   const polyMatch = lower.match(/(\d+)\s*%\s*poly/);
   const linMatch = lower.match(/(\d+)\s*%\s*lin/);
@@ -92,6 +91,57 @@ function detectMatiere(description: string): string {
   if (lower.includes('polyester') || lower.includes('polaire')) return 'polyester';
 
   return 'mix';
+}
+
+// Qualité matière détectée depuis la description
+type QualiteMatiere = 'basique' | 'standard' | 'premium' | 'haut_de_gamme';
+
+function detectQualiteMatiere(description: string, certifications: string[]): QualiteMatiere {
+  const lower = description.toLowerCase();
+  let score = 0;
+
+  // Fibres premium
+  if (lower.includes('peigné') || lower.includes('peigne') || lower.includes('combed')) score += 3;
+  if (lower.includes('ring spun') || lower.includes('ring-spun') || lower.includes('ringspun')) score += 3;
+  if (lower.includes('mercerisé')) score += 4;
+  if (lower.includes('supima') || lower.includes('pima')) score += 5;
+  if (lower.includes('égyptien') || lower.includes('egyptian')) score += 5;
+  if (lower.includes('interlock')) score += 2;
+  if (lower.includes('jersey')) score += 1;
+  if (lower.includes('french terry')) score += 2;
+  if (lower.includes('molleton')) score += 1;
+
+  // Finitions premium
+  if (lower.includes('bande de propreté') || lower.includes('tape')) score += 1;
+  if (lower.includes('double couture') || lower.includes('double piqûre')) score += 1;
+  if (lower.includes('renforcé') || lower.includes('reinforced')) score += 1;
+  if (lower.includes('tear off') || lower.includes('détachable') || lower.includes('tear away')) score += 2;
+  if (lower.includes('lycra') || lower.includes('élasthanne') || lower.includes('spandex')) score += 1;
+  if (lower.includes('déperlant') || lower.includes('water-repellent')) score += 2;
+  if (lower.includes('respirant') || lower.includes('breathable')) score += 1;
+
+  // Matières techniques premium
+  if (lower.includes('ripstop')) score += 2;
+  if (lower.includes('cordura')) score += 3;
+  if (lower.includes('gore-tex') || lower.includes('goretex')) score += 5;
+  if (lower.includes('coolmax')) score += 2;
+  if (lower.includes('thermolite')) score += 2;
+
+  // Éco-responsable = souvent premium
+  if (lower.includes('bio') || lower.includes('organic')) score += 2;
+  if (lower.includes('recyclé') || lower.includes('recycled') || lower.includes('rpet')) score += 2;
+  if (certifications.includes('GOTS')) score += 3;
+  if (certifications.includes('Bio')) score += 2;
+  if (certifications.includes('Oeko-Tex')) score += 1;
+
+  // Négatifs = basique
+  if (lower.includes('open end') || lower.includes('open-end')) score -= 2;
+  if (lower.includes('cardé') || lower.includes('carded')) score -= 1;
+
+  if (score >= 7) return 'haut_de_gamme';
+  if (score >= 4) return 'premium';
+  if (score >= 1) return 'standard';
+  return 'basique';
 }
 
 // Seuils grammage par type de produit (g/m²)
@@ -174,6 +224,20 @@ const RULES: TagRule[] = [
   { condition: (p) => p.normes.includes('EN1149-5'), tags: { public_cible: ['btp'], style: ['workwear'] } },
   { condition: (p) => p.normes.includes('HACCP'), tags: { public_cible: ['restauration'], lavage_max: 60 } },
 
+  // ── Sport / Technique (détection par composition) ──
+  { condition: (p) => {
+    const d = p.description.toLowerCase();
+    return (d.includes('polyester') && (d.includes('élasthanne') || d.includes('spandex') || d.includes('lycra')))
+      || d.includes('dry fit') || d.includes('coolmax') || d.includes('quick dry')
+      || d.includes('mesh') || d.includes('micro-perfor')
+      || d.includes('respirant') || d.includes('évacuation');
+  }, tags: { usages: ['sport'], style: ['sportswear'], public_cible: ['associatif'], saison: ['ete', 'toute_saison'] } },
+
+  // ── Par qualité matière ──
+  { condition: (p) => detectQualiteMatiere(p.description, p.certifications) === 'haut_de_gamme', tags: { niveau_gamme: 'premium', style: ['chic'], public_cible: ['corporate', 'hotellerie'] } },
+  { condition: (p) => detectQualiteMatiere(p.description, p.certifications) === 'premium', tags: { niveau_gamme: 'premium' } },
+  { condition: (p) => detectQualiteMatiere(p.description, p.certifications) === 'basique', tags: { niveau_gamme: 'entree', usages: ['evenement'] } },
+
   // ── Broderie vs sérigraphie ──
   { condition: (_, t) => t.gamme === 'lourd' && t.matiere === 'coton', tags: { techniques_marquage: ['broderie'] } },
   { condition: (_, t) => t.type === 'polo', tags: { techniques_marquage: ['broderie'] } },
@@ -190,6 +254,7 @@ export function tagProduct(product: ProductData): ProductTags {
   const type = detectType(product.nom, product.categorie);
   const matiere = detectMatiere(product.description);
   const gamme = detectGammeGrammage(product.grammage, type);
+  const qualite = detectQualiteMatiere(product.description, product.certifications);
 
   // Tags par défaut
   const tags: ProductTags = {
@@ -204,6 +269,7 @@ export function tagProduct(product: ProductData): ProductTags {
     lavage_max: 40,
     style: [],
     public_cible: [],
+    qualite_matiere: qualite,
   };
 
   // Appliquer les règles (merge, pas replace)
