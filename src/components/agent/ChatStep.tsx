@@ -27,6 +27,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Qualification state
   const secteur = context?.secteur || '';
@@ -37,9 +38,18 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
 
+  // Scroll to bottom on new messages, scroll to top on new step
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, stepIndex, alerteVisible]);
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, alerteVisible]);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = 0;
+    }
+  }, [stepIndex]);
 
   const handleMicTranscript = useCallback((text: string) => {
     setInput((prev) => (prev ? prev + ' ' + text : text));
@@ -219,7 +229,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]">
         {/* Messages */}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
