@@ -38,6 +38,8 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
 
   const filtered = useMemo(() => {
     const result = products.filter((p) => {
+      // Masquer les produits sans prix
+      if (!p.prix_from) return false;
       if (search) {
         const q = search.toLowerCase();
         const haystack = `${p.nom} ${p.description} ${p.categorie} ${p.ref_fournisseur}`.toLowerCase();
