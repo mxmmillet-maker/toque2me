@@ -1,4 +1,4 @@
-import { getNormesRequises } from './normes';
+import { getNormesObligatoires } from './normes';
 import { tagProduct } from '@/lib/product-tagger';
 
 export interface ScoringCriteria {
@@ -129,7 +129,7 @@ export function scoreProducts(
   criteria: ScoringCriteria,
   prixMap: Map<string, number>
 ): ScoredProduct[] {
-  const normesRequises = criteria.secteur ? getNormesRequises(criteria.secteur) : [];
+  const normesRequises = criteria.secteur ? getNormesObligatoires(criteria.secteur) : [];
   const priorites = criteria.priorites || DEFAULT_PRIORITIES;
 
   // Budget par personne (pour filtrer les produits trop chers)
@@ -166,7 +166,7 @@ export function scoreProducts(
     // 2. Conformité normes — BONUS (pas éliminatoire tant que les données ne sont pas complètes)
     if (normesRequises.length > 0) {
       const productNormes = p.normes || [];
-      const conforme = normesRequises.every((n) => productNormes.includes(n));
+      const conforme = normesRequises.every((n: string) => productNormes.includes(n));
       if (conforme) score += 20;
     }
 

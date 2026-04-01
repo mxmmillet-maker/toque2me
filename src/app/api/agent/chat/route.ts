@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
       typologies: context?.typologies,
       style: context?.style,
       type_etablissement: context?.type_etablissement,
+      metier: context?.metier,
     });
 
     const stream = client.messages.stream({

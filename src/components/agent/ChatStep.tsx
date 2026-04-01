@@ -3,6 +3,14 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { MicButton } from './MicButton';
+import {
+  getStepsForContext,
+  qualificationToPromptContext,
+  buildQualificationSummary,
+  BUDGET_TRANCHE_MAP,
+  type QualificationContext,
+  type QualificationStep,
+} from '@/lib/agent/qualification-steps';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,127 +22,146 @@ interface ChatStepProps {
   initialMessages?: Message[];
 }
 
-// Questions de qualification avec boutons
-const QUALIFICATION_STEPS = [
-  {
-    question: 'Quel environnement de travail ?',
-    options: [
-      { label: '🍽️ Salle / Accueil', value: 'salle et accueil client' },
-      { label: '👨‍🍳 Cuisine', value: 'cuisine, lavage 60°C minimum requis' },
-      { label: '🏢 Bureau / Corporate', value: 'bureau et environnement corporate' },
-      { label: '🏗️ Extérieur / Chantier', value: 'extérieur et chantier' },
-      { label: '🔀 Mixte', value: 'environnement mixte intérieur/extérieur' },
-    ],
-  },
-  {
-    question: 'Quel style recherchez-vous ?',
-    options: [
-      { label: 'Casual chic', value: 'style casual chic, élégant mais décontracté' },
-      { label: 'Classique / Sobre', value: 'style classique et sobre, professionnel' },
-      { label: 'Sportswear', value: 'style sportswear, dynamique et moderne' },
-      { label: 'Workwear', value: 'style workwear technique et résistant' },
-    ],
-  },
-  {
-    question: 'Répartition de l\'équipe ?',
-    options: [
-      { label: '👫 Mixte H/F', value: 'équipe mixte hommes et femmes' },
-      { label: '👨 Majorité hommes', value: 'équipe majoritairement masculine' },
-      { label: '👩 Majorité femmes', value: 'équipe majoritairement féminine' },
-      { label: '🧑 Unisexe', value: 'tenues unisexes pour tous' },
-    ],
-  },
-  {
-    question: 'Couleur dominante souhaitée ?',
-    options: [
-      { label: '⬛ Noir', value: 'couleur dominante noir' },
-      { label: '🔵 Bleu marine', value: 'couleur dominante bleu marine' },
-      { label: '⬜ Blanc', value: 'couleur dominante blanc' },
-      { label: '🔘 Gris', value: 'couleur dominante gris' },
-      { label: '🎨 Autre / Pas de préférence', value: 'pas de préférence de couleur' },
-    ],
-  },
-  {
-    question: 'Quel délai ?',
-    options: [
-      { label: '⚡ Urgent (< 2 sem)', value: 'délai urgent, moins de 2 semaines' },
-      { label: '📅 Normal (2-4 sem)', value: 'délai normal, 2 à 4 semaines' },
-      { label: '🗓️ Flexible (> 1 mois)', value: 'délai flexible, plus d\'un mois' },
-    ],
-  },
-];
-
 export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const [qualifStep, setQualifStep] = useState(0);
-  const [qualifAnswers, setQualifAnswers] = useState<string[]>([]);
-  const [qualifDone, setQualifDone] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Qualification state
+  const secteur = context?.secteur || '';
+  const steps = useMemo(() => getStepsForContext(secteur), [secteur]);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [qualifDone, setQualifDone] = useState(false);
+  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>({ secteur });
+  const [multiSelection, setMultiSelection] = useState<string[]>([]);
+  const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, qualifStep]);
+  }, [messages, stepIndex, alerteVisible]);
 
   const handleMicTranscript = useCallback((text: string) => {
     setInput((prev) => (prev ? prev + ' ' + text : text));
   }, []);
 
-  // Extraire les refs produit des messages assistant
+  // Refs extraction from assistant messages
   const extractedRefs = useMemo(() => {
-    const assistantMessages = messages.filter(m => m.role === 'assistant').map(m => m.content);
-    const allText = assistantMessages.join(' ');
-    const refPattern = /\b([A-Z]{1,4}\d{2,5}[A-Z]{0,3})\b/g;
-    const matches = allText.match(refPattern) || [];
+    const allText = messages.filter(m => m.role === 'assistant').map(m => m.content).join(' ');
+    const matches = allText.match(/\b([A-Z]{1,4}\d{2,5}[A-Z]{0,3})\b/g) || [];
     const excluded = new Set(['HT', 'TTC', 'TVA', 'ISO', 'HACCP', 'EN', 'EUR', 'PDF']);
     return Array.from(new Set(matches)).filter(r => !excluded.has(r) && r.length >= 3);
   }, [messages]);
 
-  const handleQualifChoice = (option: { label: string; value: string }) => {
-    const newAnswers = [...qualifAnswers, option.value];
-    setQualifAnswers(newAnswers);
+  // Current step
+  const currentStep: QualificationStep | null = !qualifDone && stepIndex < steps.length ? steps[stepIndex] : null;
 
-    // Ajouter comme message utilisateur (visible dans le chat)
-    setMessages((prev) => [
-      ...prev,
-      { role: 'user', content: option.label },
-    ]);
+  // Handle single choice
+  const handleChoice = (step: QualificationStep, option: { value: string; label: string; alerte?: string }) => {
+    // Show alerte if present
+    if (option.alerte) {
+      setAlerteVisible(option.alerte);
+      setTimeout(() => setAlerteVisible(null), 3000);
+    }
 
-    if (qualifStep < QUALIFICATION_STEPS.length - 1) {
-      setQualifStep(qualifStep + 1);
+    // Add as user message
+    setMessages(prev => [...prev, { role: 'user', content: option.label }]);
+
+    // Update qualification context
+    const newCtx = { ...qualifCtx, [step.id]: option.value };
+
+    // Special handling
+    if (step.id === 'budget_oui_non') {
+      newCtx.a_budget = option.value === 'oui';
+    }
+    if (step.id === 'budget_tranche') {
+      newCtx.budget_global = BUDGET_TRANCHE_MAP[option.value];
+    }
+
+    setQualifCtx(newCtx);
+
+    // Determine next step
+    if (step.next) {
+      const nextId = step.next(option.value, newCtx);
+      if (nextId === null) {
+        // End of flow
+        finishQualification(newCtx);
+        return;
+      }
+      // Find step by id
+      const nextIdx = steps.findIndex(s => s.id === nextId);
+      if (nextIdx !== -1) {
+        setStepIndex(nextIdx);
+        return;
+      }
+    }
+
+    // Move to next step
+    const nextIndex = stepIndex + 1;
+    if (nextIndex < steps.length) {
+      // Check if next step's condition is met
+      const nextStep = steps[nextIndex];
+      if (nextStep.condition && !nextStep.condition(newCtx)) {
+        // Skip this step, try the one after
+        const skipIdx = steps.findIndex((s, i) => i > nextIndex && (!s.condition || s.condition(newCtx)));
+        if (skipIdx !== -1) {
+          setStepIndex(skipIdx);
+        } else {
+          finishQualification(newCtx);
+        }
+      } else {
+        setStepIndex(nextIndex);
+      }
     } else {
-      // Toutes les questions répondues → envoyer à Claude
-      setQualifDone(true);
-      const qualifContext = newAnswers.join('. ');
-      const initialPrompt = `Mes critères : ${context.typologies?.join(', ') || 'textile pro'}. ${qualifContext}. ${context.nb_personnes ? context.nb_personnes + ' personnes.' : ''} Propose directement un mix chiffré.`;
-      sendToAssistant(initialPrompt);
+      finishQualification(newCtx);
     }
   };
 
-  const sendToAssistant = async (content: string) => {
-    const userMsg: Message = { role: 'user', content };
-    // N'ajouter au chat que si c'est pas le prompt initial (déjà les boutons)
-    const newMessages = qualifDone && messages.length > 0 && messages[messages.length - 1].content !== content
-      ? [...messages, userMsg]
-      : [...messages];
+  // Handle multi-select confirm
+  const handleMultiConfirm = (step: QualificationStep) => {
+    setMessages(prev => [...prev, { role: 'user', content: multiSelection.join(', ') }]);
+    const newCtx = { ...qualifCtx, [step.id]: multiSelection };
+    setQualifCtx(newCtx);
+    setMultiSelection([]);
 
-    // Pour le premier envoi auto, on n'affiche pas le prompt technique
-    const apiMessages = [...newMessages.filter(m => m.role === 'user' || m.role === 'assistant'), { role: 'user' as const, content }];
+    const nextIndex = stepIndex + 1;
+    if (nextIndex < steps.length) {
+      setStepIndex(nextIndex);
+    } else {
+      finishQualification(newCtx);
+    }
+  };
 
-    setMessages(newMessages);
+  // Finish qualification → send to Claude
+  const finishQualification = (ctx: Partial<QualificationContext>) => {
+    setQualifDone(true);
+    const summary = buildQualificationSummary(ctx as QualificationContext);
+    setMessages(prev => [...prev, { role: 'assistant', content: `Parfait, voici votre profil :\n\n${summary}\n\nJe prépare votre sélection...` }]);
+
+    const promptCtx = qualificationToPromptContext(ctx as QualificationContext);
+    const pieces = context?.typologies?.join(', ') || 'textile pro';
+    const nbPers = context?.nb_personnes ? `${context.nb_personnes} personnes` : '';
+    const prompt = `Critères : ${pieces}. ${Object.values(ctx).filter(v => v && typeof v === 'string').join('. ')}. ${nbPers}. Propose directement un mix chiffré.`;
+
+    sendToAssistant(prompt, { ...context, ...promptCtx, metier: ctx.metier });
+  };
+
+  // Send message to Claude API
+  const sendToAssistant = async (content: string, ctxOverride?: any) => {
     setStreaming(true);
+    const apiCtx = ctxOverride || context;
+    const apiMessages = [...messages.filter(m => m.content), { role: 'user' as const, content }];
 
     try {
       const res = await fetch('/api/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, context }),
+        body: JSON.stringify({ messages: apiMessages, context: apiCtx }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        setMessages([...newMessages, { role: 'assistant', content: err.error || 'Erreur. Réessayez.' }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: err.error || 'Erreur. Réessayez.' }]);
         setStreaming(false);
         return;
       }
@@ -142,8 +169,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
       const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         const data = await res.json();
-        const fallbackText = data.message || 'Voici notre sélection basée sur vos critères.';
-        setMessages([...newMessages, { role: 'assistant', content: fallbackText }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message || 'Voici notre sélection.' }]);
         setStreaming(false);
         return;
       }
@@ -152,72 +178,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
       const reader = res.body?.getReader();
       const decoder = new TextDecoder();
       let assistantContent = '';
-      setMessages([...newMessages, { role: 'assistant', content: '' }]);
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6);
-          if (data === '[DONE]') break;
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.text) {
-              assistantContent += parsed.text;
-              setMessages((prev) => {
-                const updated = [...prev];
-                updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
-                return updated;
-              });
-            }
-          } catch { /* skip */ }
-        }
-      }
-    } catch {
-      setMessages([...newMessages, { role: 'assistant', content: 'Erreur de connexion. Réessayez.' }]);
-    } finally {
-      setStreaming(false);
-    }
-  };
-
-  const send = async () => {
-    if (!input.trim() || streaming) return;
-    const content = input.trim();
-    setInput('');
-    const userMsg: Message = { role: 'user', content };
-    setMessages((prev) => [...prev, userMsg]);
-    setStreaming(true);
-
-    try {
-      const allMsgs = [...messages, userMsg];
-      const res = await fetch('/api/agent/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: allMsgs, context }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        setMessages([...allMsgs, { role: 'assistant', content: err.error || 'Erreur. Réessayez.' }]);
-        setStreaming(false);
-        return;
-      }
-
-      const contentType = res.headers.get('content-type') || '';
-      if (contentType.includes('application/json')) {
-        const data = await res.json();
-        setMessages([...allMsgs, { role: 'assistant', content: data.message || 'Voici notre sélection.' }]);
-        setStreaming(false);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantContent = '';
-      setMessages([...allMsgs, { role: 'assistant', content: '' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
       while (reader) {
         const { done, value } = await reader.read();
@@ -231,7 +192,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
             const parsed = JSON.parse(data);
             if (parsed.text) {
               assistantContent += parsed.text;
-              setMessages((prev) => {
+              setMessages(prev => {
                 const updated = [...prev];
                 updated[updated.length - 1] = { role: 'assistant', content: assistantContent };
                 return updated;
@@ -241,36 +202,32 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
         }
       }
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Erreur de connexion. Réessayez.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Erreur de connexion. Réessayez.' }]);
     } finally {
       setStreaming(false);
     }
   };
 
-  const currentQuestion = !qualifDone ? QUALIFICATION_STEPS[qualifStep] : null;
+  // Free text send (after qualification)
+  const send = async () => {
+    if (!input.trim() || streaming) return;
+    const content = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content }]);
+    sendToAssistant(content);
+  };
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]">
-        {messages.length === 0 && !currentQuestion && (
-          <p className="text-sm text-neutral-400 text-center py-8">
-            Posez une question pour affiner votre recherche
-          </p>
-        )}
-
-        {/* Messages du chat */}
+        {/* Messages */}
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user'
-                  ? 'bg-neutral-900 text-white rounded-br-md'
-                  : 'bg-neutral-100 text-neutral-800 rounded-bl-md'
-              }`}
-            >
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+              m.role === 'user'
+                ? 'bg-neutral-900 text-white rounded-br-md'
+                : 'bg-neutral-100 text-neutral-800 rounded-bl-md'
+            }`}>
               {m.content || (streaming && i === messages.length - 1 ? (
                 <span className="inline-flex gap-1">
                   <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" />
@@ -282,25 +239,64 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
           </div>
         ))}
 
-        {/* Boutons de qualification */}
-        {currentQuestion && !streaming && (
+        {/* Alerte norme dure */}
+        {alerteVisible && (
+          <div className="mx-2 px-4 py-2.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 font-medium">
+            ⚠️ {alerteVisible}
+          </div>
+        )}
+
+        {/* Qualification buttons */}
+        {currentStep && !streaming && (
           <div className="space-y-3">
             <div className="flex justify-start">
               <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md bg-neutral-100 text-neutral-800 text-sm">
-                {currentQuestion.question}
+                <p className="font-medium">{currentStep.question}</p>
+                {currentStep.sous_titre && (
+                  <p className="text-xs text-slate-500 mt-1">{currentStep.sous_titre}</p>
+                )}
               </div>
             </div>
             <div className="flex flex-wrap gap-2 pl-2">
-              {currentQuestion.options.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleQualifChoice(opt)}
-                  className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded-full hover:border-neutral-900 hover:bg-neutral-50 transition-colors"
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {currentStep.options.map((opt) => {
+                const isMulti = currentStep.type === 'multi';
+                const isSelected = isMulti && multiSelection.includes(opt.value);
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      if (isMulti) {
+                        setMultiSelection(prev =>
+                          prev.includes(opt.value)
+                            ? prev.filter(v => v !== opt.value)
+                            : [...prev, opt.value]
+                        );
+                      } else {
+                        handleChoice(currentStep, opt);
+                      }
+                    }}
+                    className={`px-4 py-2 text-sm font-medium border rounded-full transition-colors ${
+                      isSelected
+                        ? 'border-neutral-900 bg-neutral-900 text-white'
+                        : 'border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
+                    }`}
+                  >
+                    {opt.emoji && <span className="mr-1.5">{opt.emoji}</span>}
+                    {opt.label}
+                    {opt.sub && <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{opt.sub}</span>}
+                  </button>
+                );
+              })}
             </div>
+            {/* Multi-select confirm */}
+            {currentStep.type === 'multi' && multiSelection.length > 0 && (
+              <button
+                onClick={() => handleMultiConfirm(currentStep)}
+                className="ml-2 px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors"
+              >
+                Valider ({multiSelection.length})
+              </button>
+            )}
           </div>
         )}
 
@@ -320,14 +316,14 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input libre (disponible après qualification ou à tout moment) */}
+      {/* Free text input (after qualification) */}
       {qualifDone && (
         <div className="flex gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Ajuster, préciser, demander une alternative..."
+            placeholder="Ajuster, comparer, demander une alternative..."
             disabled={streaming}
             className="flex-1 px-4 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 disabled:opacity-50"
           />
