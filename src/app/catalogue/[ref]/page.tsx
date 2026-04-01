@@ -36,7 +36,11 @@ export async function generateMetadata({ params }: { params: { ref: string } }):
     openGraph: {
       title: `${p.nom} — Toque2Me`,
       description: desc,
-      images: p.image_url ? [{ url: p.image_url, width: 600, height: 600 }] : [],
+      images: [
+        p.image_url
+          ? { url: p.image_url, width: 600, height: 600 }
+          : { url: `/api/og?title=${encodeURIComponent(p.nom)}&subtitle=${encodeURIComponent(p.categorie || 'Textile pro')}`, width: 1200, height: 630 },
+      ],
     },
   };
 }

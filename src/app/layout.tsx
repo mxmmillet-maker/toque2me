@@ -22,17 +22,21 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Toque2Me — Textile & objets personnalisés pour professionnels",
   description: "Configurez et commandez vos vêtements pro personnalisés. Devis en 3 minutes, conformité réglementaire incluse.",
+  metadataBase: new URL("https://toque2me-two.vercel.app"),
   openGraph: {
     title: "Toque2Me — Textile & objets personnalisés pour professionnels",
     description: "Configurez et commandez vos vêtements pro personnalisés. Devis en 3 minutes, conformité réglementaire incluse.",
     siteName: "Toque2Me",
     locale: "fr_FR",
     type: "website",
+    url: "https://toque2me-two.vercel.app",
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Toque2Me — Textile pro personnalisé" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Toque2Me — Textile pro personnalisé",
     description: "Devis en 3 minutes, conformité réglementaire incluse.",
+    images: ["/api/og"],
   },
   robots: {
     index: true,
