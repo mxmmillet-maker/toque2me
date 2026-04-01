@@ -97,14 +97,43 @@ export async function syncSupplier(adapter: SupplierAdapter): Promise<SyncResult
 // ─── Sync des grilles de prix ─────────────────────────────────────────────────
 
 async function syncPrices(prices: PriceGrid[], fournisseur: string) {
+  // Résoudre product_ref → product_id (UUID)
+  const refs = Array.from(new Set(prices.map(p => p.product_ref)));
+  const { data: products } = await supabaseAdmin
+    .from('products')
+    .select('id, ref_fournisseur')
+    .eq('fournisseur', fournisseur)
+    .in('ref_fournisseur', refs);
+
+  const refToId = new Map<string, string>();
+  for (const p of (products || [])) {
+    refToId.set(p.ref_fournisseur, p.id);
+    refToId.set(p.ref_fournisseur.toLowerCase(), p.id);
+    refToId.set(p.ref_fournisseur.toUpperCase(), p.id);
+  }
+
+  const pricesWithId = prices
+    .filter(p => refToId.has(p.product_ref))
+    .map(p => ({
+      product_id: refToId.get(p.product_ref)!,
+      fournisseur,
+      qte_min: p.qte_min,
+      qte_max: p.qte_max,
+      prix_ht: p.prix_ht,
+    }));
+
+  if (pricesWithId.length === 0) return;
+
   // Supprimer les anciens prix du fournisseur
   await supabaseAdmin
     .from('prices')
     .delete()
     .eq('fournisseur', fournisseur);
 
-  // Insérer les nouveaux en batch
-  await supabaseAdmin.from('prices').insert(prices);
+  // Insérer en batch (max 1000 par appel)
+  for (let i = 0; i < pricesWithId.length; i += 1000) {
+    await supabaseAdmin.from('prices').insert(pricesWithId.slice(i, i + 1000));
+  }
 }
 
 // ─── Log en base ──────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { SupplierAdapter, RawProduct, NormalizedProduct } from '../lib/types';
+import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid } from '../lib/types';
 
 // ─── TopTex API v3 ────────────────────────────────────────────────────────────
 // Auth: POST /v3/authenticate {username, password} + header x-api-key → JWT (1h)
@@ -188,5 +188,51 @@ export const ToptexAdapter: SupplierAdapter = {
       // actif n'est pas inclus — le sync engine fait un upsert
       // et on ne veut pas écraser le statut actif/exclu existant
     };
+  },
+
+  async fetchPrices(): Promise<PriceGrid[]> {
+    const allPrices: PriceGrid[] = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const response = await fetchWithAuth(
+        `/v3/products/price?page_number=${page}&page_size=1500`
+      );
+      if (!response.ok) throw new Error(`TopTex Prices API error: ${response.status}`);
+
+      const data = await response.json();
+      const items = Array.isArray(data) ? data : data.items || [];
+
+      for (const item of items) {
+        const ref = item.catalogReference;
+        if (!ref) continue;
+
+        const priceTiers = item.prices || [];
+        for (let i = 0; i < priceTiers.length; i++) {
+          const tier = priceTiers[i];
+          const nextTier = priceTiers[i + 1];
+          allPrices.push({
+            product_ref: ref,
+            qte_min: parseInt(tier.quantity) || 1,
+            qte_max: nextTier ? (parseInt(nextTier.quantity) - 1) : null,
+            prix_ht: tier.price,
+          });
+        }
+      }
+
+      hasMore = items.length >= 1500;
+      page++;
+      if (page > 200) break; // Sécurité
+    }
+
+    // Dédupliquer par ref + qte_min (un seul prix par palier par ref catalogue)
+    const seen = new Set<string>();
+    return allPrices.filter(p => {
+      const key = `${p.product_ref}_${p.qte_min}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   },
 };
