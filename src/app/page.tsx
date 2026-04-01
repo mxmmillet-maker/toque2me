@@ -62,7 +62,7 @@ export default function Home() {
       {/* Catégories produits */}
       <section className="border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+          <div className="flex flex-wrap justify-center gap-2">
             <Link
               href="/catalogue"
               className="flex-shrink-0 px-4 py-2 text-sm font-medium text-neutral-900 bg-neutral-900 text-white rounded-full hover:bg-neutral-800 transition-colors"
