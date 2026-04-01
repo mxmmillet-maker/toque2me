@@ -38,18 +38,35 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
 
-  // Scroll to bottom on new messages, scroll to top on new step
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages, alerteVisible]);
+  const questionRef = useRef<HTMLDivElement>(null);
 
+  // Scroll: show the question + buttons, aligned to bottom unless content is taller than container
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = 0;
-    }
-  }, [stepIndex]);
+    if (!chatContainerRef.current) return;
+    // Small delay to let DOM render
+    requestAnimationFrame(() => {
+      if (!chatContainerRef.current || !questionRef.current) {
+        // No question visible (qualifDone) → scroll to bottom for messages
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+        }
+        return;
+      }
+      const container = chatContainerRef.current;
+      const question = questionRef.current;
+      const containerHeight = container.clientHeight;
+      const questionTop = question.offsetTop;
+      const questionHeight = question.scrollHeight;
+
+      if (questionHeight > containerHeight) {
+        // Question + buttons taller than container → align top
+        container.scrollTop = questionTop;
+      } else {
+        // Scroll so question + buttons are at the bottom of the visible area
+        container.scrollTop = questionTop + questionHeight - containerHeight;
+      }
+    });
+  }, [stepIndex, messages.length, alerteVisible]);
 
   const handleMicTranscript = useCallback((text: string) => {
     setInput((prev) => (prev ? prev + ' ' + text : text));
@@ -258,7 +275,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
 
         {/* Qualification buttons */}
         {currentStep && !streaming && (
-          <div className="space-y-3">
+          <div ref={questionRef} className="space-y-3">
             <div className="flex justify-start">
               <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md bg-neutral-100 text-neutral-800 text-sm">
                 <p className="font-medium">{currentStep.question}</p>
