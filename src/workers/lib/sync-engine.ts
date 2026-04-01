@@ -1,14 +1,5 @@
 import { SupplierAdapter, NormalizedProduct, PriceGrid, SyncResult } from './types';
-import { createClient } from '@supabase/supabase-js';
-
-// ─── Client admin (service role — bypass RLS) ────────────────────────────────
-// IMPORTANT : ce fichier ne tourne QUE côté serveur (workers/cron)
-// JAMAIS importer dans un composant React côté client
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 // ─── Moteur de synchronisation générique ─────────────────────────────────────
 
