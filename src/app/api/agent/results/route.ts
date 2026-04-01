@@ -3,12 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 import { scoreProducts, getTop } from '@/lib/agent/scoring';
 import { getMargin } from '@/lib/pricing';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   const { context } = await req.json();
 
   // 1. Charger les produits actifs et non exclus

@@ -5,12 +5,8 @@ import { scoreProducts, getTop } from '@/lib/agent/scoring';
 import { buildSystemPrompt } from '@/lib/agent/prompt';
 import { getMargin } from '@/lib/pricing';
 
+export const dynamic = 'force-dynamic';
 export const maxDuration = 30; // Vercel Hobby max = 60s
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Rate limiting par session (en mémoire — reset au redeploy)
 const sessionCounts = new Map<string, { count: number; reset: number }>();
@@ -28,6 +24,11 @@ function checkRateLimit(sessionId: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   const { messages, context } = await req.json();
   const sessionId = context?.sessionId || 'anon';
 
