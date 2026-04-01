@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import { MicButton } from './MicButton';
 
 interface Message {
@@ -26,6 +27,19 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const handleMicTranscript = useCallback((text: string) => {
     setInput((prev) => (prev ? prev + ' ' + text : text));
   }, []);
+
+  // Extraire les refs produit des messages de l'assistant
+  const extractedRefs = useMemo(() => {
+    const assistantMessages = messages.filter(m => m.role === 'assistant').map(m => m.content);
+    const allText = assistantMessages.join(' ');
+    // Patterns : "Réf. K5002", "| K750 |", "(Réf. NS6006)"
+    const refPattern = /\b([A-Z]{1,4}\d{2,5}[A-Z]{0,3})\b/g;
+    const matches = allText.match(refPattern) || [];
+    // Dédupliquer et filtrer les faux positifs (mots courants, montants)
+    const excluded = new Set(['HT', 'TTC', 'TVA', 'ISO', 'HACCP', 'EN', 'EUR', 'PDF']);
+    const unique = Array.from(new Set(matches)).filter(r => !excluded.has(r) && r.length >= 3);
+    return unique;
+  }, [messages]);
 
   const send = async () => {
     if (!input.trim() || streaming) return;
@@ -131,6 +145,18 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
             </div>
           </div>
         ))}
+        {/* Bouton devis si des refs sont détectées */}
+        {!streaming && extractedRefs.length > 0 && (
+          <div className="flex justify-center py-2">
+            <Link
+              href={`/calculateur?refs=${extractedRefs.join(',')}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors shadow-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Chiffrer cette sélection ({extractedRefs.length} produit{extractedRefs.length > 1 ? 's' : ''})
+            </Link>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
