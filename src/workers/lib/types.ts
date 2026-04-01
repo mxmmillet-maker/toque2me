@@ -20,6 +20,7 @@ export interface NormalizedProduct {
   score_durabilite?: number;
   score_premium?: number;
   stock_bas?: boolean;
+  couleurs?: { nom: string; hexa: string }[];
   actif?: boolean;
 }
 

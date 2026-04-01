@@ -29,6 +29,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     grammageMax: 999,
     lavage: '',
     certification: '',
+    couleur: '',
     tri: '',
   });
 
@@ -52,6 +53,27 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     return Array.from(new Set(all)).filter(Boolean).sort();
   }, [productsWithPrice]);
 
+  const couleurs = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of productsWithPrice) {
+      const cols = p.couleurs || [];
+      for (const c of cols) {
+        if (c.nom && c.hexa && !map.has(c.nom)) map.set(c.nom, c.hexa);
+      }
+    }
+    // Top couleurs les plus courantes
+    const counts = new Map<string, number>();
+    for (const p of productsWithPrice) {
+      for (const c of (p.couleurs || [])) {
+        counts.set(c.nom, (counts.get(c.nom) || 0) + 1);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([nom, hexa]) => ({ nom, hexa, count: counts.get(nom) || 0 }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12);
+  }, [productsWithPrice]);
+
   const filtered = useMemo(() => {
     const result = productsWithPrice.filter((p) => {
       if (search) {
@@ -63,6 +85,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
       if (filters.grammageMin > 0 && (!p.grammage || p.grammage < filters.grammageMin)) return false;
       if (filters.grammageMax < 999 && p.grammage && p.grammage > filters.grammageMax) return false;
       if (filters.certification && !(p.certifications || []).includes(filters.certification)) return false;
+      if (filters.couleur && !(p.couleurs || []).some((c: any) => c.nom === filters.couleur)) return false;
       // Lavage : on cherche dans la description
       if (filters.lavage) {
         const desc = (p.description || '').toLowerCase();
@@ -159,6 +182,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
           filters={filters}
           onChange={handleFilters}
           certifications={certifications}
+          couleurs={couleurs}
         />
       </div>
 

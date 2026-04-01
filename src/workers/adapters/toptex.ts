@@ -107,6 +107,21 @@ function extractImageUrl(images: any): string {
   return url;
 }
 
+function extractColors(colors: any): { nom: string; hexa: string }[] {
+  if (!colors || !Array.isArray(colors)) return [];
+  const seen = new Set<string>();
+  const result: { nom: string; hexa: string }[] = [];
+  for (const c of colors) {
+    const nom = c?.colors?.fr || c?.colors?.en || '';
+    if (!nom || seen.has(nom)) continue;
+    seen.add(nom);
+    const hexArr = c?.colorsHexa || [];
+    const hexa = (Array.isArray(hexArr) ? hexArr[0] : hexArr) || '';
+    result.push({ nom, hexa: hexa.startsWith('#') ? hexa : (hexa ? '#' + hexa : '') });
+  }
+  return result;
+}
+
 const BRAND_SCORES: Record<string, { durabilite: number; premium: number }> = {
   'stanley/stella': { durabilite: 90, premium: 95 },
   'kariban': { durabilite: 80, premium: 80 },
@@ -185,6 +200,7 @@ export const ToptexAdapter: SupplierAdapter = {
       secteurs: ['entreprise'],
       score_durabilite: scores.durabilite,
       score_premium: scores.premium,
+      couleurs: extractColors(raw.colors),
       // actif n'est pas inclus — le sync engine fait un upsert
       // et on ne veut pas écraser le statut actif/exclu existant
     };

@@ -6,6 +6,7 @@ interface Filters {
   grammageMax: number;
   lavage: string;
   certification: string;
+  couleur: string;
   tri: string;
 }
 
@@ -13,14 +14,15 @@ interface FilterBarProps {
   filters: Filters;
   onChange: (filters: Filters) => void;
   certifications: string[];
+  couleurs: { nom: string; hexa: string }[];
 }
 
-export function FilterBar({ filters, onChange, certifications }: FilterBarProps) {
+export function FilterBar({ filters, onChange, certifications, couleurs }: FilterBarProps) {
   const update = (key: keyof Filters, value: string | number) => {
     onChange({ ...filters, [key]: value });
   };
 
-  const hasFilters = filters.grammageMin > 0 || filters.grammageMax < 999 || filters.lavage || filters.certification || filters.tri;
+  const hasFilters = filters.grammageMin > 0 || filters.grammageMax < 999 || filters.lavage || filters.certification || filters.couleur || filters.tri;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -71,6 +73,29 @@ export function FilterBar({ filters, onChange, certifications }: FilterBarProps)
         </select>
       )}
 
+      {/* Couleur */}
+      {couleurs.length > 0 && (
+        <div className="flex items-center gap-1 px-2 py-1.5 border border-slate-200 rounded-lg">
+          <span className="text-xs text-slate-400 mr-1">Couleur</span>
+          {couleurs.slice(0, 10).map((c) => (
+            <button
+              key={c.nom}
+              onClick={() => update('couleur', filters.couleur === c.nom ? '' : c.nom)}
+              title={c.nom}
+              className={`w-6 h-6 rounded-full border-2 transition-all ${
+                filters.couleur === c.nom
+                  ? 'border-neutral-900 scale-110'
+                  : 'border-slate-200 hover:border-slate-400'
+              }`}
+              style={{ backgroundColor: c.hexa || '#ccc' }}
+            />
+          ))}
+          {filters.couleur && (
+            <span className="text-xs text-slate-500 ml-1">{filters.couleur}</span>
+          )}
+        </div>
+      )}
+
       {/* Tri */}
       <select
         value={filters.tri}
@@ -86,7 +111,7 @@ export function FilterBar({ filters, onChange, certifications }: FilterBarProps)
 
       {hasFilters && (
         <button
-          onClick={() => onChange({ ...filters, grammageMin: 0, grammageMax: 999, lavage: '', certification: '', tri: '' })}
+          onClick={() => onChange({ ...filters, grammageMin: 0, grammageMax: 999, lavage: '', certification: '', couleur: '', tri: '' })}
           className="text-xs text-slate-500 hover:text-neutral-900 underline underline-offset-2 transition-colors"
         >
           Réinitialiser
