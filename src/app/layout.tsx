@@ -48,18 +48,65 @@ function Navbar() {
           Toque2Me
         </Link>
 
-        <div className="hidden sm:flex items-center gap-6">
-          <Link href="/catalogue" className="text-sm text-slate-600 hover:text-neutral-900 transition-colors">
-            Catalogue
-          </Link>
-          <Link href="/configurateur" className="text-sm text-slate-600 hover:text-neutral-900 transition-colors">
+        <div className="hidden md:flex items-center gap-1">
+          {/* Catalogue avec dropdown catégories */}
+          <div className="relative group">
+            <Link href="/catalogue" className="px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 rounded-lg hover:bg-slate-50 transition-colors">
+              Catalogue
+            </Link>
+            <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-4 w-[420px] grid grid-cols-2 gap-1">
+                {[
+                  { label: 'T-shirts', href: '/catalogue?categorie=T-shirts' },
+                  { label: 'Polos', href: '/catalogue?categorie=Polos' },
+                  { label: 'Sweats', href: '/catalogue?categorie=Sweats' },
+                  { label: 'Vestes', href: '/catalogue?categorie=Vestes' },
+                  { label: 'Chemises', href: '/catalogue?categorie=Chemises' },
+                  { label: 'Pantalons', href: '/catalogue?categorie=Pantalons' },
+                  { label: 'Tabliers', href: '/catalogue?categorie=Tabliers' },
+                  { label: 'Chef / Cuisine', href: '/catalogue?categorie=Chef' },
+                  { label: 'Accessoires', href: '/catalogue?categorie=Accessoires' },
+                  { label: 'Bagagerie', href: '/catalogue?categorie=Bagagerie' },
+                ].map((cat) => (
+                  <Link
+                    key={cat.label}
+                    href={cat.href}
+                    className="px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors"
+                  >
+                    {cat.label}
+                  </Link>
+                ))}
+                <div className="col-span-2 mt-2 pt-2 border-t border-slate-100">
+                  <Link href="/catalogue" className="px-3 py-2 text-sm font-medium text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors block">
+                    Voir tout le catalogue →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Métiers avec dropdown */}
+          <div className="relative group">
+            <span className="px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 rounded-lg hover:bg-slate-50 transition-colors cursor-default">
+              Métiers
+            </span>
+            <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-2 w-56">
+                <Link href="/restaurateurs" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
+                  <span className="text-lg">🍽️</span> Restauration / CHR
+                </Link>
+                <Link href="/btp" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
+                  <span className="text-lg">🦺</span> BTP & Artisans
+                </Link>
+                <Link href="/catalogue?categorie=Chef" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
+                  <span className="text-lg">👨‍🍳</span> Chef / Cuisine pro
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <Link href="/configurateur" className="px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 rounded-lg hover:bg-slate-50 transition-colors">
             Configurateur
-          </Link>
-          <Link href="/restaurateurs" className="text-sm text-slate-600 hover:text-neutral-900 transition-colors">
-            Restaurateurs
-          </Link>
-          <Link href="/btp" className="text-sm text-slate-600 hover:text-neutral-900 transition-colors">
-            BTP
           </Link>
         </div>
 
