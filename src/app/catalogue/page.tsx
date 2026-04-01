@@ -3,7 +3,7 @@ import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
 import { getMargin } from '@/lib/pricing';
 import Link from 'next/link';
 
-export const revalidate = 3600;
+export const revalidate = 60; // 1min le temps de stabiliser
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
