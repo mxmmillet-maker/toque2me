@@ -46,11 +46,14 @@ export function buildSystemPrompt(ctx: PromptContext): string {
         `${i + 1}. **${p.nom}** (Réf. ${p.ref_fournisseur})
    - Catégorie : ${p.categorie}
    - Grammage : ${p.grammage ? p.grammage + ' g/m²' : 'N/A'}
-   - Origine : ${p.origine || 'N/A'}
    - Certifications : ${p.certifications.length > 0 ? p.certifications.join(', ') : 'aucune'}
-   - Normes : ${p.normes.length > 0 ? p.normes.join(', ') : 'aucune'}
-   - Durabilité : ${p.score_durabilite}/100 | Premium : ${p.score_premium}/100
-   - Prix vente HT : ${p.prix_vente_ht ? p.prix_vente_ht.toFixed(2) + ' €/pce' : 'sur devis'}`
+   - Prix vente HT : ${p.prix_vente_ht ? p.prix_vente_ht.toFixed(2) + ' €/pce' : 'sur devis'}
+   - Usages : ${p.tags?.usages?.join(', ') || 'N/A'}
+   - Style : ${p.tags?.style?.join(', ') || 'N/A'}
+   - Public : ${p.tags?.public_cible?.join(', ') || 'tous'}
+   - Lavage max : ${p.tags?.lavage_max || '?'}°C
+   - Marquage : ${p.tags?.techniques_marquage?.join(', ') || 'N/A'}
+   - Gamme : ${p.tags?.niveau_gamme || 'N/A'} | Saison : ${p.tags?.saison?.join(', ') || 'N/A'}`
     )
     .join('\n\n');
 

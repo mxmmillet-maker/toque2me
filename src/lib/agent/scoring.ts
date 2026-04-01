@@ -1,4 +1,5 @@
 import { getNormesRequises } from './normes';
+import { tagProduct } from '@/lib/product-tagger';
 
 export interface ScoringCriteria {
   typologies?: string[];     // pièces sélectionnées (catégories)
@@ -32,6 +33,15 @@ export interface ScoredProduct {
   genre: 'Homme' | 'Femme' | 'Enfant' | 'Unisexe';
   stock_bas?: boolean;
   variante?: { ref: string; genre: string; nom: string };
+  tags?: {
+    usages: string[];
+    saison: string[];
+    style: string[];
+    public_cible: string[];
+    niveau_gamme: string;
+    lavage_max: number;
+    techniques_marquage: string[];
+  };
   score: number;
 }
 
@@ -191,8 +201,20 @@ export function scoreProducts(
     );
     if (isEurope) score += 10 * (priorites.origine / 100);
 
+    // Tags contextuels
+    const productTags = tagProduct({
+      nom: p.nom || '',
+      description: p.description || '',
+      categorie: p.categorie || '',
+      grammage: p.grammage,
+      prix_vente_ht: prixVente,
+      certifications: p.certifications || [],
+      normes: p.normes || [],
+    });
+
     // Bonus style — fort bonus si le style du produit matche le style demandé
-    if (criteria.style && productStyle === criteria.style) score += 15;
+    if (criteria.style && productTags.style.includes(criteria.style)) score += 15;
+    else if (criteria.style && productStyle === criteria.style) score += 10;
 
     // Bonus secteur
     if (criteria.secteur && (p.secteurs || []).includes(criteria.secteur)) score += 8;
@@ -217,6 +239,15 @@ export function scoreProducts(
       prix_vente_ht: prixVente,
       genre,
       stock_bas: p.stock_bas ?? undefined,
+      tags: {
+        usages: productTags.usages,
+        saison: productTags.saison,
+        style: productTags.style,
+        public_cible: productTags.public_cible,
+        niveau_gamme: productTags.niveau_gamme,
+        lavage_max: productTags.lavage_max,
+        techniques_marquage: productTags.techniques_marquage,
+      },
       score,
     });
   }
