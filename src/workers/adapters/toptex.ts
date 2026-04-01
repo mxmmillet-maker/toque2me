@@ -96,13 +96,15 @@ function parseGrammage(weight: string | undefined): number | undefined {
 function extractImageUrl(images: any): string {
   if (!images) return '';
   const list = Array.isArray(images) ? images : [images];
+  let url = '';
   for (const img of list) {
-    if (typeof img === 'string') return img;
-    // Préférer url_image (CDN direct) à url (lien de téléchargement)
-    if (img?.url_image) return img.url_image;
-    if (img?.url) return img.url;
+    if (typeof img === 'string') { url = img; break; }
+    if (img?.url_image) { url = img.url_image; break; }
+    if (img?.url) { url = img.url; break; }
   }
-  return '';
+  // Forcer HTTPS
+  if (url.startsWith('http://')) url = url.replace('http://', 'https://');
+  return url;
 }
 
 const BRAND_SCORES: Record<string, { durabilite: number; premium: number }> = {

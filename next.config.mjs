@@ -5,6 +5,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'cybernecard.fr' },
       { protocol: 'https', hostname: 'cdn.toptex.com' },
+      { protocol: 'http', hostname: 'cdn.toptex.com' },
     ],
   },
 };
