@@ -94,11 +94,30 @@ function detectMatiere(description: string): string {
   return 'mix';
 }
 
-function detectGammeGrammage(grammage: number | undefined): ProductTags['gamme_grammage'] {
+// Seuils grammage par type de produit (g/m²)
+const GRAMMAGE_SEUILS: Record<string, { leger: number; lourd: number }> = {
+  't-shirt':         { leger: 140, lourd: 190 },
+  'debardeur':       { leger: 120, lourd: 170 },
+  'polo':            { leger: 170, lourd: 230 },
+  'chemise':         { leger: 100, lourd: 140 },
+  'sweat':           { leger: 250, lourd: 320 },
+  'sweat_zippe':     { leger: 250, lourd: 320 },
+  'veste':           { leger: 200, lourd: 300 },
+  'veste_cuisine':   { leger: 150, lourd: 220 },
+  'softshell':       { leger: 280, lourd: 350 },
+  'parka':           { leger: 200, lourd: 300 },
+  'pantalon':        { leger: 200, lourd: 300 },
+  'pantalon_cuisine':{ leger: 180, lourd: 250 },
+  'bermuda':         { leger: 180, lourd: 260 },
+  'tablier':         { leger: 150, lourd: 250 },
+};
+
+function detectGammeGrammage(grammage: number | undefined, type?: string): ProductTags['gamme_grammage'] {
   if (!grammage) return 'medium';
-  if (grammage < 150) return 'leger';
-  if (grammage <= 250) return 'medium';
-  return 'lourd';
+  const seuils = GRAMMAGE_SEUILS[type || ''] || { leger: 150, lourd: 250 };
+  if (grammage < seuils.leger) return 'leger';
+  if (grammage > seuils.lourd) return 'lourd';
+  return 'medium';
 }
 
 // ─── Règles de tagging par héritage ──────────────────────────────────────────
@@ -170,7 +189,7 @@ export function tagProduct(product: ProductData): ProductTags {
   const famille = detectFamille(product.categorie);
   const type = detectType(product.nom, product.categorie);
   const matiere = detectMatiere(product.description);
-  const gamme = detectGammeGrammage(product.grammage);
+  const gamme = detectGammeGrammage(product.grammage, type);
 
   // Tags par défaut
   const tags: ProductTags = {
