@@ -44,6 +44,24 @@ const QUALIFICATION_STEPS = [
       { label: '🧑 Unisexe', value: 'tenues unisexes pour tous' },
     ],
   },
+  {
+    question: 'Couleur dominante souhaitée ?',
+    options: [
+      { label: '⬛ Noir', value: 'couleur dominante noir' },
+      { label: '🔵 Bleu marine', value: 'couleur dominante bleu marine' },
+      { label: '⬜ Blanc', value: 'couleur dominante blanc' },
+      { label: '🔘 Gris', value: 'couleur dominante gris' },
+      { label: '🎨 Autre / Pas de préférence', value: 'pas de préférence de couleur' },
+    ],
+  },
+  {
+    question: 'Quel délai ?',
+    options: [
+      { label: '⚡ Urgent (< 2 sem)', value: 'délai urgent, moins de 2 semaines' },
+      { label: '📅 Normal (2-4 sem)', value: 'délai normal, 2 à 4 semaines' },
+      { label: '🗓️ Flexible (> 1 mois)', value: 'délai flexible, plus d\'un mois' },
+    ],
+  },
 ];
 
 export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
