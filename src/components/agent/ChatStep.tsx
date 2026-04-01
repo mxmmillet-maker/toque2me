@@ -107,7 +107,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
       // Toutes les questions répondues → envoyer à Claude
       setQualifDone(true);
       const qualifContext = newAnswers.join('. ');
-      const initialPrompt = `Voici mes critères : ${context.typologies?.join(', ') || 'textile pro'}. ${qualifContext}. Propose-moi un mix adapté pour ${context.nb_personnes || 'mon équipe'} personnes.`;
+      const initialPrompt = `Mes critères : ${context.typologies?.join(', ') || 'textile pro'}. ${qualifContext}. ${context.nb_personnes ? context.nb_personnes + ' personnes.' : ''} Propose directement un mix chiffré.`;
       sendToAssistant(initialPrompt);
     }
   };
