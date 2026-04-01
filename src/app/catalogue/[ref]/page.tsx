@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
-import Image from 'next/image';
 import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { NormeBadge } from '@/components/catalogue/NormeBadge';
 import { PriceGrid } from '@/components/catalogue/PriceGrid';
+import { ColorSelector } from '@/components/catalogue/ColorSelector';
 import { getPriceTiers } from '@/lib/pricing';
 import type { Metadata } from 'next';
 
@@ -87,24 +87,15 @@ export default async function ProductPage({ params, searchParams }: { params: { 
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-          {/* Photo */}
-          <div className="relative aspect-square bg-neutral-50 rounded-xl overflow-hidden">
-            {product.image_url ? (
-              <Image
-                src={product.image_url}
-                alt={product.nom}
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-neutral-300 text-sm">
-                Pas de photo
-              </div>
-            )}
+          {/* Photo + Couleurs */}
+          <div>
+            <ColorSelector
+              colors={product.couleurs || []}
+              defaultImage={product.image_url || ''}
+              productName={product.nom}
+            />
             {product.score_durabilite && product.score_durabilite >= 85 && (
-              <div className="absolute top-4 right-4 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium tracking-wider uppercase rounded-lg border border-emerald-200">
+              <div className="mt-2 inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium tracking-wider uppercase rounded-lg border border-emerald-200">
                 Éco-responsable
               </div>
             )}
@@ -136,29 +127,6 @@ export default async function ProductPage({ params, searchParams }: { params: { 
                 <span className="text-sm text-neutral-400">Prix sur devis</span>
               )}
             </div>
-
-            {/* Couleurs disponibles */}
-            {product.couleurs && product.couleurs.length > 0 && (
-              <div className="mb-6 pb-6 border-b border-neutral-100">
-                <h2 className="text-xs font-medium text-neutral-400 uppercase tracking-wider mb-3">
-                  {product.couleurs.length} couleur{product.couleurs.length > 1 ? 's' : ''} disponible{product.couleurs.length > 1 ? 's' : ''}
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  {product.couleurs.map((c: { nom: string; hexa: string }) => (
-                    <div
-                      key={c.nom}
-                      className="group flex items-center gap-2 px-3 py-1.5 border border-slate-200 rounded-full hover:border-slate-400 transition-colors cursor-default"
-                    >
-                      <span
-                        className="w-4 h-4 rounded-full border border-slate-200"
-                        style={{ backgroundColor: c.hexa || '#ccc' }}
-                      />
-                      <span className="text-xs text-slate-600">{c.nom}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Description */}
             <div className="mb-6">

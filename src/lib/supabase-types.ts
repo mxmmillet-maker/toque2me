@@ -13,7 +13,7 @@ export interface SupabaseProduct {
   secteurs?: string[];
   score_durabilite?: number;
   score_premium?: number;
-  couleurs?: { nom: string; hexa: string }[];
+  couleurs?: { nom: string; hexa: string; image?: string }[];
   actif: boolean;
   prix_from?: number;
 }
