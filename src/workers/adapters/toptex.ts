@@ -212,11 +212,14 @@ export const ToptexAdapter: SupplierAdapter = {
         for (let i = 0; i < priceTiers.length; i++) {
           const tier = priceTiers[i];
           const nextTier = priceTiers[i + 1];
+          const qty = typeof tier.quantity === 'string' ? parseInt(tier.quantity) : tier.quantity;
+          const price = typeof tier.price === 'string' ? parseFloat(tier.price) : tier.price;
+          if (isNaN(qty) || isNaN(price)) continue;
           allPrices.push({
             product_ref: ref,
-            qte_min: parseInt(tier.quantity) || 1,
-            qte_max: nextTier ? (parseInt(nextTier.quantity) - 1) : null,
-            prix_ht: tier.price,
+            qte_min: qty || 1,
+            qte_max: nextTier ? ((typeof nextTier.quantity === 'string' ? parseInt(nextTier.quantity) : nextTier.quantity) - 1) : null,
+            prix_ht: price,
           });
         }
       }

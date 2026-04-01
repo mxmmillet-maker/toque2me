@@ -97,13 +97,19 @@ export async function syncSupplier(adapter: SupplierAdapter): Promise<SyncResult
 // ─── Sync des grilles de prix ─────────────────────────────────────────────────
 
 async function syncPrices(prices: PriceGrid[], fournisseur: string) {
-  // Résoudre product_ref → product_id (UUID)
+  // Résoudre product_ref → product_id (UUID) en batch
   const refs = Array.from(new Set(prices.map(p => p.product_ref)));
-  const { data: products } = await supabaseAdmin
-    .from('products')
-    .select('id, ref_fournisseur')
-    .eq('fournisseur', fournisseur)
-    .in('ref_fournisseur', refs);
+  const allProducts: { id: string; ref_fournisseur: string }[] = [];
+  for (let i = 0; i < refs.length; i += 500) {
+    const batch = refs.slice(i, i + 500);
+    const { data } = await supabaseAdmin
+      .from('products')
+      .select('id, ref_fournisseur')
+      .eq('fournisseur', fournisseur)
+      .in('ref_fournisseur', batch);
+    if (data) allProducts.push(...data);
+  }
+  const products = allProducts;
 
   const refToId = new Map<string, string>();
   for (const p of (products || [])) {
