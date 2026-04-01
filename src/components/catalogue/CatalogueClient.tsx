@@ -32,9 +32,9 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     tri: '',
   });
 
-  // Produits avec prix uniquement
+  // Tous les produits (ceux avec prix en premier)
   const productsWithPrice = useMemo(
-    () => products.filter((p) => p.prix_from),
+    () => [...products].sort((a, b) => (b.prix_from ? 1 : 0) - (a.prix_from ? 1 : 0)),
     [products]
   );
 
