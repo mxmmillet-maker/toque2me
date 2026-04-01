@@ -1,12 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import Link from 'next/link';
 import { CalculateurClient } from '@/components/calculateur/CalculateurClient';
 import { CalculateurMultiClient } from '@/components/calculateur/CalculateurMultiClient';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 export default async function CalculateurPage({
   searchParams,
@@ -26,7 +21,7 @@ export default async function CalculateurPage({
       return { refA: a, refB: b };
     });
 
-    const { data: products } = await supabase
+    const { data: products } = await supabaseAdmin
       .from('products')
       .select('nom, ref_fournisseur, image_url, categorie')
       .in('ref_fournisseur', allRefs);
@@ -94,7 +89,7 @@ export default async function CalculateurPage({
     );
   }
 
-  const { data: product } = await supabase
+  const { data: product } = await supabaseAdmin
     .from('products')
     .select('nom, ref_fournisseur')
     .eq('ref_fournisseur', singleRef)

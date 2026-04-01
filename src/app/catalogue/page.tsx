@@ -1,14 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CatalogueClient } from '@/components/catalogue/CatalogueClient';
 import { getMargin } from '@/lib/pricing';
 import Link from 'next/link';
 
 export const revalidate = 60; // 1min le temps de stabiliser
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 async function getProducts() {
   // Supabase limite à 1000 par défaut — on pagine côté serveur
@@ -17,7 +12,7 @@ async function getProducts() {
   const pageSize = 1000;
 
   while (true) {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('products')
       .select('*')
       .eq('actif', true)
@@ -41,7 +36,7 @@ async function getProducts() {
   const allPrices: { product_id: string; prix_ht: number }[] = [];
   let priceFrom = 0;
   while (true) {
-    const { data: priceBatch } = await supabase
+    const { data: priceBatch } = await supabaseAdmin
       .from('prices')
       .select('product_id, qte_min, prix_ht')
       .order('product_id')

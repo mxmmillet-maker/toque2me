@@ -1,14 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export default async function DevisPublicPage({ params }: { params: { token: string } }) {
-  const { data: quote } = await supabase
+  const { data: quote } = await supabaseAdmin
     .from('quotes')
     .select('*')
     .eq('share_token', params.token)

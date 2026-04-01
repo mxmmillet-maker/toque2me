@@ -1,20 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 async function getStats() {
   const [products, activeProducts, quotes, syncLogs] = await Promise.all([
-    supabase.from('products').select('*', { count: 'exact', head: true }),
-    supabase.from('products').select('*', { count: 'exact', head: true }).eq('actif', true),
-    supabase.from('quotes').select('*', { count: 'exact', head: true }),
-    supabase.from('sync_logs').select('*').order('created_at', { ascending: false }).limit(20),
+    supabaseAdmin.from('products').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('products').select('*', { count: 'exact', head: true }).eq('actif', true),
+    supabaseAdmin.from('quotes').select('*', { count: 'exact', head: true }),
+    supabaseAdmin.from('sync_logs').select('*').order('created_at', { ascending: false }).limit(20),
   ]);
 
-  const { data: margins } = await supabase.from('margins').select('*').order('fournisseur');
+  const { data: margins } = await supabaseAdmin.from('margins').select('*').order('fournisseur');
 
   return {
     totalProducts: products.count ?? 0,

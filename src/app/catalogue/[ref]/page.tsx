@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { NormeBadge } from '@/components/catalogue/NormeBadge';
 import { PriceGrid } from '@/components/catalogue/PriceGrid';
 import { getPriceTiers } from '@/lib/pricing';
@@ -9,13 +9,8 @@ import type { Metadata } from 'next';
 
 export const revalidate = 3600;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 async function getProduct(ref: string) {
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('products')
     .select('*')
     .eq('ref_fournisseur', ref)
@@ -25,7 +20,7 @@ async function getProduct(ref: string) {
 }
 
 export async function generateMetadata({ params }: { params: { ref: string } }): Promise<Metadata> {
-  const { data: p } = await supabase
+  const { data: p } = await supabaseAdmin
     .from('products')
     .select('nom, description, image_url, categorie')
     .eq('ref_fournisseur', params.ref)
