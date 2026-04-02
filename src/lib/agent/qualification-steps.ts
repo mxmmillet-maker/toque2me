@@ -58,10 +58,10 @@ const TYPOLOGIES_MAP: Record<string, Record<string, string[]>> = {
     evenement:      ['T-shirts', 'Sweats', 'Vestes', 'Casquettes / Bonnets'],
   },
   workwear: {
-    restauration:   ['Vestes cuisine', 'Pantalons', 'Tabliers', 'T-shirts'],
+    restauration:   ['Vestes', 'Pantalons', 'Tabliers', 'T-shirts'],
     btp:            ['T-shirts', 'Pantalons', 'Vestes', 'Sweats'],
     industrie:      ['T-shirts', 'Pantalons', 'Vestes', 'Sweats'],
-    sante:          ['Tuniques', 'Pantalons', 'T-shirts'],
+    sante:          ['T-shirts', 'Pantalons', 'Vestes'],
     nettoyage:      ['T-shirts', 'Pantalons', 'Tabliers'],
     securite:       ['Polos', 'Pantalons', 'Vestes'],
     espaces_verts:  ['T-shirts', 'Pantalons', 'Vestes', 'Sweats'],
