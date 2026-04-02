@@ -1,5 +1,6 @@
 import { getNormesObligatoires } from './normes';
 import { tagProduct } from '@/lib/product-tagger';
+import { productMatchesColors } from '@/lib/color-normalizer';
 
 export interface ScoringCriteria {
   typologies?: string[];     // pièces sélectionnées (catégories)
@@ -9,6 +10,7 @@ export interface ScoringCriteria {
   usage?: string;            // 'evenement' | 'quotidien' | 'image'
   style?: string;            // 'casual' | 'chic' | 'sportswear' | 'classique'
   repartition_hf?: string;   // 'homme' | 'femme' | 'mixte'
+  couleurs?: string[];       // couleurs demandées (noir, marine, etc.)
   priorites?: {
     durabilite: number;
     origine: number;
@@ -163,6 +165,15 @@ export function scoreProducts(
     if (rep === 'maj_h' && genre === 'Femme') score -= 15;
     if (rep === 'maj_f' && genre === 'Homme') score -= 15;
 
+    // Filtrage couleur : pénaliser les produits qui n'ont pas les couleurs demandées
+    if (criteria.couleurs && criteria.couleurs.length > 0 && !criteria.couleurs.includes('marque')) {
+      if (!productMatchesColors(p.couleurs, criteria.couleurs)) {
+        score -= 30;
+      } else {
+        score += 10;
+      }
+    }
+
     // Style manuel (depuis la base) prime sur la détection auto
     const productStyle = p.style || detectStyle(p.nom || '', p.description || '', p.categorie || '');
 
@@ -241,6 +252,18 @@ export function scoreProducts(
     // Accessoires de tablier (pas un vrai tablier)
     if ((nomLower.includes('lani') && nomLower.includes('tablier')) || nomLower.includes('attache pour tablier') || nomLower.includes('set d')) {
       score -= 50;
+    }
+    // Accessoires : cravates, écharpes, foulards = pas des couvre-chefs
+    if (nomLower.includes('cravate') || nomLower.includes('noeud papillon') || nomLower.includes('foulard') || nomLower.includes('écharpe')) {
+      score -= 20;
+    }
+
+    // Favoriser les produits unis (pas rayés, bicolores, marinières, camouflage)
+    if (nomLower.includes('rayé') || nomLower.includes('rayure') || nomLower.includes('stripe') ||
+        nomLower.includes('marinière') || nomLower.includes('bicolore') || nomLower.includes('camo') ||
+        nomLower.includes('camouflage') || nomLower.includes('tartan') || nomLower.includes('checked') ||
+        nomLower.includes('carreaux')) {
+      score -= 15; // unis en premier par défaut
     }
 
     // Oversize / épaules tombantes → pas classique, pas BTP, pas resto

@@ -123,6 +123,7 @@ export async function POST(req: NextRequest) {
     usage: context?.usage,
     style: context?.style,
     repartition_hf: context?.repartition_hf,
+    couleurs: context?.couleurs,
     priorites: context?.priorites,
   }, prixMap);
 

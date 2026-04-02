@@ -358,6 +358,7 @@ export function qualificationToPromptContext(ctx: QualificationContext) {
     typologies: ctx.typologies,
     style: globalStyle || ctx.style,
     repartition_hf: repMap[ctx.coupe || ''] || 'mixte',
+    couleurs: allCouleurs.length > 0 ? allCouleurs : undefined,
     usage: OCCASION_TO_USAGE[ctx.occasion || ''] || 'quotidien',
     budget_global: ctx.budget_global ?? undefined,
   };
