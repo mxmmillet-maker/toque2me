@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { QCMStep } from '@/components/agent/QCMStep';
 import { ResultsStep } from '@/components/agent/ResultsStep';
 import { ChatStep } from '@/components/agent/ChatStep';
+import { BriefInput, type ExtractedBrief } from '@/components/agent/BriefInput';
 import Link from 'next/link';
 
 type Step = 'qcm' | 'results' | 'chat';
@@ -155,7 +156,36 @@ export default function ConfigurateurPage() {
         </div>
 
         {step === 'qcm' && (
-          <QCMStep onComplete={handleQCMComplete} loading={loading} />
+          <>
+            {/* Brief texte libre — raccourci pour les agences pressées */}
+            <BriefInput onExtracted={async (data: ExtractedBrief) => {
+              const ctx = {
+                typologies: data.typologies?.length ? data.typologies : undefined,
+                secteur: data.secteur || undefined,
+                nb_personnes: data.nb_personnes || undefined,
+                budget_global: undefined,
+                usage: data.usage || undefined,
+                style: data.style || undefined,
+                deadline: data.deadline || undefined,
+                repartition_hf: undefined,
+              };
+              setContext(ctx);
+              // Si assez d'info, skip direct aux résultats
+              if (ctx.typologies && ctx.typologies.length > 0 && data.confidence > 0.6) {
+                await fetchResults(ctx);
+                setStep('results');
+              }
+              // Sinon le QCM reste visible, pré-rempli via context
+            }} />
+
+            <div className="relative my-6 flex items-center">
+              <div className="flex-1 border-t border-neutral-200" />
+              <span className="px-3 text-xs text-neutral-400">ou répondez aux questions</span>
+              <div className="flex-1 border-t border-neutral-200" />
+            </div>
+
+            <QCMStep onComplete={handleQCMComplete} loading={loading} />
+          </>
         )}
 
         {step === 'results' && (

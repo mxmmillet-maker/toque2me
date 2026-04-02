@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import { AlternativesDrawer } from './AlternativesDrawer';
+import { MarkingPopup, type MarkingConfig } from './MarkingPopup';
 
 interface Product {
   nom: string;
@@ -78,6 +80,13 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
   const [lines, setLines] = useState<LinePricing[]>(buildInitialLines);
   const [, setVariantePricing] = useState<Map<string, { prix_unitaire_ht: number; total_ht: number }>>(new Map());
   const [submitting, setSubmitting] = useState(false);
+
+  // Drawer alternatives
+  const [drawerOpen, setDrawerOpen] = useState<{ index: number; ref: string; nom: string; categorie: string } | null>(null);
+
+  // Popup marquage
+  const [markingOpen, setMarkingOpen] = useState<{ index: number } | null>(null);
+  const [markingConfigs, setMarkingConfigs] = useState<Map<number, MarkingConfig>>(new Map());
 
   const fetchPricing = useCallback(async (ref: string, qty: number) => {
     if (qty <= 0) return { prix_unitaire_ht: 0, total_ht: 0, error: '' };
@@ -216,9 +225,10 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
     });
   };
 
-  const totalHT = lines.reduce((sum, l) => sum + l.total_ht, 0);
-  const francoPort = 150;
-  const fraisPort = totalHT >= francoPort ? 0 : 12.50;
+  const totalMarquage = Array.from(markingConfigs.values()).reduce((sum, c) => sum + c.total_marquage_ht, 0);
+  const totalHT = lines.reduce((sum, l) => sum + l.total_ht, 0) + totalMarquage;
+  const francoPort = 500;
+  const fraisPort = totalHT >= francoPort ? 0 : 19.90;
   const totalAvecPort = totalHT + fraisPort;
   const tva = totalAvecPort * 0.2;
   const totalTTC = totalAvecPort + tva;
@@ -309,6 +319,25 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
                   Réf. {line.ref}
                   {hasPaire && <> / {line.varianteRef}</>}
                 </p>
+                <div className="flex gap-2 mt-1.5">
+                  <button
+                    onClick={() => setDrawerOpen({ index: i, ref: line.ref, nom: line.nom, categorie: product?.categorie || '' })}
+                    className="text-[10px] text-neutral-400 hover:text-neutral-900 underline underline-offset-2"
+                  >
+                    Changer
+                  </button>
+                  <button
+                    onClick={() => setMarkingOpen({ index: i })}
+                    className="text-[10px] text-neutral-400 hover:text-neutral-900 underline underline-offset-2"
+                  >
+                    Personnaliser
+                  </button>
+                  {markingConfigs.has(i) && (
+                    <span className="text-[10px] text-emerald-600">
+                      +{markingConfigs.get(i)!.total_marquage_ht.toFixed(2)} € marquage
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-3 mt-3">
                   <label className="text-xs text-neutral-500 whitespace-nowrap">Par pers.</label>
@@ -425,6 +454,58 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
       <p className="text-xs text-neutral-400 text-center">
         Devis gratuit — validité 30 jours — {lines.length} produit{lines.length > 1 ? 's' : ''}
       </p>
+
+      {/* Drawer alternatives */}
+      {drawerOpen && (
+        <AlternativesDrawer
+          isOpen={true}
+          onClose={() => setDrawerOpen(null)}
+          currentRef={drawerOpen.ref}
+          currentNom={drawerOpen.nom}
+          categorie={drawerOpen.categorie}
+          onSelect={async (newRef, newNom, newImageUrl) => {
+            const idx = drawerOpen.index;
+            // Remplacer le produit dans la ligne
+            setLines((prev) => {
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], ref: newRef, nom: newNom, loading: true };
+              return updated;
+            });
+            // Mettre à jour le produit dans la liste products (pour l'image)
+            // Re-fetch pricing
+            const result = await fetchPricing(newRef, lines[idx].qty);
+            setLines((prev) => {
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], ...result, loading: false };
+              return updated;
+            });
+            setDrawerOpen(null);
+          }}
+        />
+      )}
+
+      {/* Popup marquage */}
+      {markingOpen && (
+        <MarkingPopup
+          isOpen={true}
+          onClose={() => setMarkingOpen(null)}
+          product={{
+            ref: lines[markingOpen.index].ref,
+            nom: lines[markingOpen.index].nom,
+            image_url: products.find(p => p.ref_fournisseur === lines[markingOpen.index].ref)?.image_url || '',
+            categorie: products.find(p => p.ref_fournisseur === lines[markingOpen.index].ref)?.categorie || '',
+          }}
+          qty={lines[markingOpen.index].qty}
+          onConfirm={(config) => {
+            setMarkingConfigs((prev) => {
+              const updated = new Map(prev);
+              updated.set(markingOpen.index, config);
+              return updated;
+            });
+            setMarkingOpen(null);
+          }}
+        />
+      )}
     </div>
   );
 }
