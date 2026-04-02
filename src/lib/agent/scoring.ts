@@ -338,10 +338,28 @@ export function scoreProducts(
       if (nomLower.includes('zippé')) score += 5;
     }
 
-    // Chic : bonus matières premium
+    // Chic : bonus matières premium + catégories adaptées
     if (sty === 'chic') {
       if (nomLower.includes('piqué') && !nomLower.includes('épaules tombantes')) score += 10;
       if (nomLower.includes('oxford') || nomLower.includes('popeline') || nomLower.includes('premium')) score += 10;
+      // Chic : polo et chemise sont top, t-shirt basique moins
+      const cat = (p.categorie || '').toLowerCase();
+      if (cat === 'chemises') score += 10;
+      if (cat === 'polos') score += 8; // polo = entre t-shirt et chemise
+    }
+
+    // Casual : t-shirt et sweat sont top, chemise moins adaptée
+    if (sty === 'casual') {
+      const cat = (p.categorie || '').toLowerCase();
+      if (cat === 't-shirts' || cat === 'sweats') score += 8;
+      if (cat === 'chemises') score -= 10; // chemise pas casual
+    }
+
+    // Classique : chemise et polo, pas de sweat oversize
+    if (sty === 'classique') {
+      const cat = (p.categorie || '').toLowerCase();
+      if (cat === 'chemises') score += 12;
+      if (cat === 'polos') score += 8;
     }
 
     // Bonus secteur
