@@ -68,6 +68,84 @@ const TYPOLOGIES_MAP: Record<string, Record<string, string[]>> = {
   },
 };
 
+// Options typologies selon le contexte
+const TYPO_OPTIONS_LIFESTYLE: StepOption[] = [
+  { value: 'T-shirts',    label: 'T-shirts',             emoji: '👕' },
+  { value: 'Polos',       label: 'Polos',                emoji: '👔' },
+  { value: 'Chemises',    label: 'Chemises',             emoji: '🪢' },
+  { value: 'Sweats',      label: 'Sweats / Hoodies',     emoji: '🧶' },
+  { value: 'Vestes',      label: 'Vestes / Manteaux',    emoji: '🧥' },
+  { value: 'Pantalons',   label: 'Pantalons',            emoji: '👖' },
+  { value: 'Accessoires', label: 'Casquettes / Bonnets', emoji: '🧢' },
+];
+
+const TYPO_OPTIONS_WORKWEAR: Record<string, StepOption[]> = {
+  restauration: [
+    { value: 'Vestes',     label: 'Vestes de cuisine',  emoji: '👨‍🍳' },
+    { value: 'Pantalons',  label: 'Pantalons de cuisine', emoji: '👖' },
+    { value: 'Tabliers',   label: 'Tabliers',           emoji: '🍳' },
+    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
+    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+    { value: 'Accessoires',label: 'Toques / Calots',    emoji: '🧑‍🍳' },
+  ],
+  btp: [
+    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
+    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+    { value: 'Pantalons',  label: 'Pantalons de travail', emoji: '👖' },
+    { value: 'Vestes',     label: 'Vestes / Softshells', emoji: '🧥' },
+    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
+    { value: 'Accessoires',label: 'Casques / Bonnets',  emoji: '⛑️' },
+  ],
+  industrie: [
+    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
+    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+    { value: 'Pantalons',  label: 'Pantalons de travail', emoji: '👖' },
+    { value: 'Vestes',     label: 'Vestes / Blouses',   emoji: '🧥' },
+    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
+  ],
+  sante: [
+    { value: 'T-shirts',   label: 'Tuniques / T-shirts', emoji: '👕' },
+    { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
+    { value: 'Vestes',     label: 'Blouses',            emoji: '🥼' },
+  ],
+  nettoyage: [
+    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
+    { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
+    { value: 'Tabliers',   label: 'Tabliers',           emoji: '🧹' },
+    { value: 'Vestes',     label: 'Vestes',             emoji: '🧥' },
+  ],
+  securite: [
+    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+    { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
+    { value: 'Vestes',     label: 'Vestes',             emoji: '🧥' },
+    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
+  ],
+  espaces_verts: [
+    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
+    { value: 'Pantalons',  label: 'Pantalons de travail', emoji: '👖' },
+    { value: 'Vestes',     label: 'Vestes / Parkas',    emoji: '🧥' },
+    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
+  ],
+};
+
+// Fallback workwear générique
+const TYPO_OPTIONS_WORKWEAR_DEFAULT: StepOption[] = [
+  { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
+  { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+  { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
+  { value: 'Vestes',     label: 'Vestes',             emoji: '🧥' },
+  { value: 'Sweats',     label: 'Sweats',             emoji: '🧶' },
+  { value: 'Tabliers',   label: 'Tabliers',           emoji: '🍳' },
+];
+
+export function getTypologyOptions(ctx: Partial<QualificationContext>): StepOption[] {
+  if (ctx.univers === 'lifestyle') return TYPO_OPTIONS_LIFESTYLE;
+  if (ctx.univers === 'workwear' && ctx.secteur) {
+    return TYPO_OPTIONS_WORKWEAR[ctx.secteur] || TYPO_OPTIONS_WORKWEAR_DEFAULT;
+  }
+  return TYPO_OPTIONS_WORKWEAR_DEFAULT;
+}
+
 function getSuggestedTypologies(ctx: Partial<QualificationContext>): string[] {
   if (ctx.univers === 'lifestyle' && ctx.usage) {
     return TYPOLOGIES_MAP.lifestyle[ctx.usage] || [];
@@ -211,23 +289,14 @@ export const QUALIFICATION_STEPS: QualificationStep[] = [
     next: () => 'couleur', // accessoires → pas de pièces/style/genre, direct couleur
   },
 
-  // ── 3. PIÈCES (pré-sélection selon contexte) ─────────────────────────────
+  // ── 3. PIÈCES (options filtrées dynamiquement dans le composant via getTypologyOptions) ──
 
   {
     id: 'typologies',
     question: 'On vous suggère ces pièces — ajustez si besoin :',
     sous_titre: 'Sélectionnez ou désélectionnez selon vos besoins.',
     type: 'multi',
-    options: [
-      { value: 'T-shirts',           label: 'T-shirts',            emoji: '👕' },
-      { value: 'Polos',              label: 'Polos',               emoji: '👔' },
-      { value: 'Chemises',           label: 'Chemises',            emoji: '🪢' },
-      { value: 'Sweats',             label: 'Sweats / Hoodies',    emoji: '🧶' },
-      { value: 'Vestes',             label: 'Vestes / Manteaux',   emoji: '🧥' },
-      { value: 'Pantalons',          label: 'Pantalons',           emoji: '👖' },
-      { value: 'Tabliers',           label: 'Tabliers',            emoji: '🍳' },
-      { value: 'Accessoires',        label: 'Casquettes / Bonnets',emoji: '🧢' },
-    ],
+    options: [], // Rempli dynamiquement par getTypologyOptions()
     preselect: getSuggestedTypologies,
     condition: (ctx) => ctx.univers !== 'accessoires',
     next: (_, ctx) => ctx.univers === 'lifestyle' ? 'style' : 'repartition_hf',

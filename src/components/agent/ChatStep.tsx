@@ -8,6 +8,7 @@ import {
   getStepsForContext,
   qualificationToPromptContext,
   buildQualificationSummary,
+  getTypologyOptions,
   type QualificationContext,
   type QualificationStep,
 } from '@/lib/agent/qualification-steps';
@@ -91,6 +92,13 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
     }
     return null;
   }, [stepIndex, qualifCtx, qualifDone, steps]);
+
+  // Options effectives du step courant (dynamiques pour typologies)
+  const currentOptions = useMemo(() => {
+    if (!currentStep) return [];
+    if (currentStep.id === 'typologies') return getTypologyOptions(qualifCtx);
+    return currentStep.options;
+  }, [currentStep?.id, qualifCtx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Preselect options on multi-select steps
   useEffect(() => {
@@ -303,7 +311,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
               </div>
             </div>
             <div className="flex flex-wrap gap-2 pl-2">
-              {currentStep.options.map((opt) => {
+              {currentOptions.map((opt) => {
                 const isMulti = currentStep.type === 'multi';
                 const isSelected = isMulti && multiSelection.includes(opt.value);
                 return (
