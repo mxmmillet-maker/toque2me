@@ -23,7 +23,7 @@ export default async function CalculateurPage({
 
     const { data: products } = await supabaseAdmin
       .from('products')
-      .select('nom, ref_fournisseur, image_url, categorie')
+      .select('nom, ref_fournisseur, image_url, categorie, variantes, marquage_dispo')
       .in('ref_fournisseur', allRefs);
 
     if (!products || products.length === 0) {

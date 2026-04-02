@@ -4,12 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { AlternativesDrawer } from './AlternativesDrawer';
 import { MarkingPopup, type MarkingConfig } from './MarkingPopup';
+import { SizeDistributionPopup } from './SizeDistributionPopup';
 
 interface Product {
   nom: string;
   ref_fournisseur: string;
   image_url?: string;
   categorie?: string;
+  variantes?: { sku?: string; couleur?: string; taille?: string; stock?: boolean | null }[];
+  marquage_dispo?: string[];
 }
 
 interface Paire {
@@ -31,6 +34,7 @@ interface LinePricing {
   varianteNom?: string;
   repartH: number; // nb de personnes en version "principale"
   repartF: number; // nb de personnes en version "variante"
+  sizeDistribution?: Record<string, number>; // { 'S': 3, 'M': 5, 'L': 8 }
 }
 
 interface CalculateurMultiClientProps {
@@ -87,6 +91,9 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
   // Popup marquage
   const [markingOpen, setMarkingOpen] = useState<{ index: number } | null>(null);
   const [markingConfigs, setMarkingConfigs] = useState<Map<number, MarkingConfig>>(new Map());
+
+  // Popup tailles
+  const [sizeOpen, setSizeOpen] = useState<{ index: number } | null>(null);
 
   const fetchPricing = useCallback(async (ref: string, qty: number) => {
     if (qty <= 0) return { prix_unitaire_ht: 0, total_ht: 0, error: '' };
@@ -332,6 +339,14 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
                   >
                     Personnaliser
                   </button>
+                  {line.qty > 0 && (
+                    <button
+                      onClick={() => setSizeOpen({ index: i })}
+                      className="text-[10px] text-neutral-400 hover:text-neutral-900 underline underline-offset-2"
+                    >
+                      {line.sizeDistribution ? 'Tailles ✓' : 'Tailles'}
+                    </button>
+                  )}
                   {markingConfigs.has(i) && (
                     <span className="text-[10px] text-emerald-600">
                       +{markingConfigs.get(i)!.total_marquage_ht.toFixed(2)} € marquage
@@ -483,6 +498,33 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
           }}
         />
       )}
+
+      {/* Popup tailles */}
+      {sizeOpen && (() => {
+        const line = lines[sizeOpen.index];
+        const product = products.find(p => p.ref_fournisseur === line.ref);
+        const availableSizes = product?.variantes
+          ? Array.from(new Set(product.variantes.map(v => v.taille).filter(Boolean) as string[]))
+          : [];
+        return (
+          <SizeDistributionPopup
+            isOpen={true}
+            onClose={() => setSizeOpen(null)}
+            productNom={line.nom}
+            totalQty={line.qty}
+            availableSizes={availableSizes.length > 0 ? availableSizes : ['XS', 'S', 'M', 'L', 'XL', 'XXL']}
+            initialDistribution={line.sizeDistribution}
+            onConfirm={(distribution) => {
+              setLines(prev => {
+                const updated = [...prev];
+                updated[sizeOpen.index] = { ...updated[sizeOpen.index], sizeDistribution: distribution };
+                return updated;
+              });
+              setSizeOpen(null);
+            }}
+          />
+        );
+      })()}
 
       {/* Popup marquage */}
       {markingOpen && (
