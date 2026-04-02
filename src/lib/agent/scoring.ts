@@ -263,7 +263,53 @@ export function scoreProducts(
         nomLower.includes('marinière') || nomLower.includes('bicolore') || nomLower.includes('camo') ||
         nomLower.includes('camouflage') || nomLower.includes('tartan') || nomLower.includes('checked') ||
         nomLower.includes('carreaux')) {
-      score -= 15; // unis en premier par défaut
+      score -= 15;
+    }
+
+    // ── Connaissance produit fine ──────────────────────────────────────
+
+    // Bermuda = très décontracté ou forte chaleur uniquement
+    // (déjà pénalisé -50 plus haut, mais on ajoute un petit bonus si sportswear/casual)
+    if (nomLower.includes('bermuda') && (sty === 'sportswear' || sty === 'casual')) {
+      score += 20; // compense partiellement le -50
+    }
+
+    // Sweat à capuche = très décontracté, pas chic ni classique
+    if (nomLower.includes('capuche') || nomLower.includes('hoodie')) {
+      if (sty === 'chic' || sty === 'classique') score -= 15;
+      if (sty === 'casual' || sty === 'sportswear') score += 5;
+    }
+
+    // Doudoune sans manche / bodywarmer = commercial, agent, outdoor
+    if (nomLower.includes('bodywarmer') || nomLower.includes('sans manche') || nomLower.includes('gilet matelassé')) {
+      if (sty === 'classique' || sty === 'chic') score += 5; // attendu en corporate/commercial
+      if (sty === 'sportswear') score -= 5;
+    }
+
+    // Col V = chic/élégant, col rond = plus tendance/casual
+    if (nomLower.includes('col v') || nomLower.includes('col-v') || nomLower.includes('v-neck')) {
+      if (sty === 'chic' || sty === 'classique') score += 8;
+      if (sty === 'casual') score -= 3;
+    }
+    if (nomLower.includes('col rond') || nomLower.includes('round neck') || nomLower.includes('crew neck')) {
+      if (sty === 'casual' || sty === 'sportswear') score += 5;
+    }
+
+    // Zippé : col cheminé = chic, zip intégral = sport
+    if (nomLower.includes('cheminé') || nomLower.includes('col montant') || nomLower.includes('stand-up collar')) {
+      if (sty === 'chic' || sty === 'classique') score += 8;
+    }
+    if (nomLower.includes('zip intégral') || nomLower.includes('full zip') || nomLower.includes('zippé intégral')) {
+      if (sty === 'sportswear') score += 8;
+      if (sty === 'chic') score -= 5;
+    }
+
+    // Matières stretch/élasthanne = sportswear
+    if (nomLower.includes('stretch') || nomLower.includes('élasthanne') || nomLower.includes('elastane') ||
+        nomLower.includes('spandex') || nomLower.includes('lycra') || descLower.includes('stretch') ||
+        descLower.includes('élasthanne') || descLower.includes('elastane')) {
+      if (sty === 'sportswear') score += 8;
+      if (sty === 'classique') score -= 5;
     }
 
     // Oversize / épaules tombantes → pas classique, pas BTP, pas resto
