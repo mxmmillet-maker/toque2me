@@ -1,42 +1,49 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import Link from 'next/link';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { useRouter } from 'next/navigation';
 
 export default function EspaceClientPage() {
+  const supabase = createSupabaseBrowser();
+  const router = useRouter();
+
   const [user, setUser] = useState<any>(null);
   const [client, setClient] = useState<any>(null);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [editingSecteur, setEditingSecteur] = useState(false);
   const [secteur, setSecteur] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (data.user) {
-        supabase
-          .from('clients')
-          .select('*')
-          .eq('id', data.user.id)
-          .single()
-          .then(({ data: c }) => {
-            setClient(c);
-            setSecteur(c?.secteur || '');
-          });
-
-        supabase
-          .from('quotes')
-          .select('id, created_at, statut, total_ht, share_token, lignes')
-          .eq('client_id', data.user.id)
-          .order('created_at', { ascending: false })
-          .then(({ data: q }) => setQuotes(q || []));
+      if (!data.user) {
+        // Le middleware devrait déjà rediriger, mais double sécurité
+        router.push('/connexion?redirect=/espace-client');
+        return;
       }
+
+      setUser(data.user);
+
+      supabase
+        .from('clients')
+        .select('*')
+        .eq('id', data.user.id)
+        .single()
+        .then(({ data: c }) => {
+          setClient(c);
+          setSecteur(c?.secteur || '');
+        });
+
+      supabase
+        .from('quotes')
+        .select('id, created_at, statut, total_ht, share_token, lignes')
+        .eq('client_id', data.user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data: q }) => setQuotes(q || []));
+
+      setLoading(false);
     });
   }, []);
 
@@ -54,6 +61,14 @@ export default function EspaceClientPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-sm text-neutral-400">Chargement...</p>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
@@ -66,7 +81,8 @@ export default function EspaceClientPage() {
           <button
             onClick={async () => {
               await supabase.auth.signOut();
-              window.location.href = '/';
+              router.push('/');
+              router.refresh();
             }}
             className="text-sm text-neutral-500 hover:text-neutral-900 underline underline-offset-2"
           >

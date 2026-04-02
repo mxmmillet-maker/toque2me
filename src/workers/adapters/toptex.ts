@@ -1,4 +1,4 @@
-import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid } from '../lib/types';
+import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid, Variante } from '../lib/types';
 
 // ─── TopTex API v3 ────────────────────────────────────────────────────────────
 // Auth: POST /v3/authenticate {username, password} + header x-api-key → JWT (1h)
@@ -129,6 +129,56 @@ function extractColors(colors: any): { nom: string; hexa: string; image?: string
   return result;
 }
 
+function extractVariantes(colors: any, catalogRef: string): Variante[] {
+  if (!colors || !Array.isArray(colors)) return [];
+  const variantes: Variante[] = [];
+  for (const c of colors) {
+    const couleur = c?.colors?.fr || c?.colors?.en || '';
+    const sizes = c?.sizes || c?.sizeVariants || [];
+    if (!Array.isArray(sizes)) continue;
+    for (const s of sizes) {
+      const taille = s?.size || s?.name || s?.label || '';
+      if (!taille) continue;
+      const sku =
+        s?.sku || s?.ean || s?.gtin ||
+        `${catalogRef}-${couleur}-${taille}`.replace(/\s+/g, '-').toUpperCase();
+      const ean = s?.ean || s?.gtin || '';
+      // stock: boolean or null if unknown
+      const stock =
+        s?.stock !== undefined ? Boolean(s.stock) :
+        s?.available !== undefined ? Boolean(s.available) :
+        s?.inStock !== undefined ? Boolean(s.inStock) :
+        null;
+      variantes.push({ sku, couleur, taille, stock, ean });
+    }
+  }
+  return variantes;
+}
+
+function extractMarquageDispo(raw: RawProduct): string[] {
+  // TopTex may expose marking/printing techniques under various field names
+  const candidates = [
+    raw.printingTechniques,
+    raw.markingMethods,
+    raw.marquage,
+    raw.printing,
+    raw.decorationTechniques,
+  ];
+  for (const field of candidates) {
+    if (!field) continue;
+    if (Array.isArray(field)) {
+      const names = field
+        .map((t: any) => (typeof t === 'string' ? t : t?.fr || t?.en || t?.name || ''))
+        .filter(Boolean);
+      if (names.length > 0) return names;
+    }
+    if (typeof field === 'string' && field.trim()) {
+      return field.split(',').map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 const BRAND_SCORES: Record<string, { durabilite: number; premium: number }> = {
   'stanley/stella': { durabilite: 90, premium: 95 },
   'kariban': { durabilite: 80, premium: 80 },
@@ -192,10 +242,13 @@ export const ToptexAdapter: SupplierAdapter = {
     const brand = (raw.brand || '').replace(/[®™]/g, '').trim();
     const grammage = parseGrammage(raw.averageWeight);
     const scores = getScores(brand, grammage);
+    const refFournisseur = raw.catalogReference || raw.supplierReference || '';
+    const variantes = extractVariantes(raw.colors, refFournisseur);
+    const marquage = extractMarquageDispo(raw);
 
     return {
       fournisseur: 'toptex',
-      ref_fournisseur: raw.catalogReference || raw.supplierReference || '',
+      ref_fournisseur: refFournisseur,
       nom: `${fr(raw.designation)} ${brand}`.trim(),
       description: fr(raw.description),
       categorie: mapCategorie(family, subFamily),
@@ -208,6 +261,8 @@ export const ToptexAdapter: SupplierAdapter = {
       score_durabilite: scores.durabilite,
       score_premium: scores.premium,
       couleurs: extractColors(raw.colors),
+      variantes: variantes.length > 0 ? variantes : undefined,
+      marquage_dispo: marquage.length > 0 ? marquage : undefined,
       // actif n'est pas inclus — le sync engine fait un upsert
       // et on ne veut pas écraser le statut actif/exclu existant
     };

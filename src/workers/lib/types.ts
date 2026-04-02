@@ -21,7 +21,17 @@ export interface NormalizedProduct {
   score_premium?: number;
   stock_bas?: boolean;
   couleurs?: { nom: string; hexa: string; image?: string }[];
+  variantes?: Variante[];
+  marquage_dispo?: string[];
   actif?: boolean;
+}
+
+export interface Variante {
+  sku: string;
+  couleur: string;
+  taille: string;
+  stock: boolean | null;
+  ean: string;
 }
 
 export interface ZoneMarquage {

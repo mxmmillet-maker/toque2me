@@ -1,4 +1,4 @@
-import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid } from '../lib/types';
+import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid, Variante } from '../lib/types';
 
 // ─── Normes et typologies par catégorie Cybernecard ──────────────────────────
 
@@ -123,6 +123,8 @@ export const CyberneCardAdapter: SupplierAdapter = {
       score_durabilite: computeDurabilite(raw, grammage),
       score_premium: computePremium(raw),
       stock_bas: stockBas,
+      variantes: extractVariantes(raw),
+      marquage_dispo: extractMarquageDispo(raw),
     };
   },
 
@@ -223,4 +225,112 @@ function computePremium(raw: RawProduct): number {
   else if (marquesMid.some(m => marque.includes(m))) score = 60;
 
   return score;
+}
+
+// ─── Extraction variantes (tailles/couleurs) ────────────────────────────────
+
+function extractVariantes(raw: RawProduct): Variante[] {
+  // Cybernecard Hydra API: déclinaisons imbriquées dans l'article
+  // Champs possibles : declinaisons, variantes, skus,ArticleDeclinaisons
+  const declinaisons = raw.declinaisons
+    || raw.variantes
+    || raw.skus
+    || raw.articleDeclinaisons
+    || raw.ArticleDeclinaisons
+    || [];
+
+  if (!Array.isArray(declinaisons) || declinaisons.length === 0) return [];
+
+  const variantes: Variante[] = [];
+
+  for (const d of declinaisons) {
+    const sku = d.sku
+      || d.codeSku
+      || d.codeDeclinaison
+      || d.reference
+      || d.code
+      || '';
+
+    const couleur = d.couleur
+      || d.libelleCouleur
+      || d.color
+      || d.colorLabel
+      || d.nomCouleur
+      || '';
+
+    const taille = d.taille
+      || d.libelleTaille
+      || d.size
+      || d.sizeLabel
+      || d.nomTaille
+      || '';
+
+    const ean = d.ean
+      || d.ean13
+      || d.codeEan
+      || d.gtin
+      || d.codeBarres
+      || '';
+
+    // Stock : boolean ou numérique, on normalise en boolean | null
+    let stock: boolean | null = null;
+    const rawStock = d.stock ?? d.enStock ?? d.disponible ?? d.stockDisponible ?? null;
+    if (rawStock !== null && rawStock !== undefined) {
+      if (typeof rawStock === 'boolean') stock = rawStock;
+      else if (typeof rawStock === 'number') stock = rawStock > 0;
+      else if (typeof rawStock === 'string') stock = rawStock.toLowerCase() !== '0' && rawStock.toLowerCase() !== 'false';
+    }
+
+    // On garde la variante même si certains champs sont vides
+    // mais on skip si ni couleur ni taille (pas une vraie variante)
+    if (!couleur && !taille && !sku) continue;
+
+    variantes.push({ sku, couleur, taille, stock, ean });
+  }
+
+  return variantes;
+}
+
+// ─── Extraction techniques de marquage ──────────────────────────────────────
+
+function extractMarquageDispo(raw: RawProduct): string[] {
+  // Cybernecard peut fournir les techniques dans divers champs
+  const techniques = raw.techniquesMarquage
+    || raw.marquages
+    || raw.techniques
+    || raw.printingTechniques
+    || raw.techniquesImpression
+    || [];
+
+  if (Array.isArray(techniques) && techniques.length > 0) {
+    return techniques
+      .map((t: any) => {
+        if (typeof t === 'string') return t.trim();
+        return (t.libelle || t.label || t.nom || t.technique || '').trim();
+      })
+      .filter(Boolean);
+  }
+
+  // Fallback : parser la description pour détecter les techniques courantes
+  const desc = (raw.descriptionArticleCatalogue || '').toLowerCase();
+  const detected: string[] = [];
+
+  const TECHNIQUES: [string[], string][] = [
+    [['sérigraphie', 'serigraphie', 'screen print'], 'Sérigraphie'],
+    [['broderie', 'embroidery'], 'Broderie'],
+    [['transfert', 'transfer'], 'Transfert'],
+    [['sublimation'], 'Sublimation'],
+    [['gravure', 'engraving', 'laser'], 'Gravure laser'],
+    [['impression numérique', 'impression numerique', 'digital print', 'dtg'], 'Impression numérique'],
+    [['flocage', 'flex'], 'Flocage'],
+    [['tampographie', 'pad print'], 'Tampographie'],
+  ];
+
+  for (const [keywords, label] of TECHNIQUES) {
+    if (keywords.some(kw => desc.includes(kw))) {
+      detected.push(label);
+    }
+  }
+
+  return detected;
 }
