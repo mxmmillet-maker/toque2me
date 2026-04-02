@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -8,6 +8,14 @@ import { useSearchParams, useRouter } from 'next/navigation';
 type Mode = 'login' | 'signup' | 'magic';
 
 export default function ConnexionPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><div className="w-8 h-8 border-2 border-neutral-900 border-t-transparent rounded-full animate-spin" /></div>}>
+      <ConnexionForm />
+    </Suspense>
+  );
+}
+
+function ConnexionForm() {
   const supabase = createSupabaseBrowser();
   const searchParams = useSearchParams();
   const router = useRouter();
