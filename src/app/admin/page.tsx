@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
@@ -20,7 +21,12 @@ async function getStats() {
   };
 }
 
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: { searchParams: { key?: string } }) {
+  // Protection admin — accès via /admin?key=<ADMIN_SECRET>
+  if (searchParams.key !== process.env.ADMIN_SECRET) {
+    redirect('/');
+  }
+
   const stats = await getStats();
 
   return (

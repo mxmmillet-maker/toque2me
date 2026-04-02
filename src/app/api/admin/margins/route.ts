@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Auth obligatoire — header Authorization: Bearer <ADMIN_SECRET>
+  const auth = req.headers.get('authorization');
+  const expected = process.env.ADMIN_SECRET;
+  if (!expected || auth !== `Bearer ${expected}`) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  }
+
   const body = await req.json();
   const { id, ...updates } = body;
 

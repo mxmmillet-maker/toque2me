@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { getMargin } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
   const refs = req.nextUrl.searchParams.get('refs')?.split(',').filter(Boolean);
   if (!refs || refs.length === 0) {
     return NextResponse.json({ products: [] });
+  }
+
+  // Limiter le nombre de refs (évite scan massif du catalogue)
+  if (refs.length > 20) {
+    return NextResponse.json({ error: 'Max 20 produits par requête' }, { status: 400 });
   }
 
   const { data: products } = await supabase

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { scoreProducts, getTop } from '@/lib/agent/scoring';
 import { buildSystemPrompt } from '@/lib/agent/prompt';
 import { getMargin } from '@/lib/pricing';
@@ -8,36 +8,72 @@ import { getMargin } from '@/lib/pricing';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30; // Vercel Hobby max = 60s
 
-// Rate limiting par session (en mémoire — reset au redeploy)
-const sessionCounts = new Map<string, { count: number; reset: number }>();
+// ─── SÉCURITÉ ───────────────────────────────────────────
+const MAX_MESSAGES = 20;       // historique max envoyé à Claude
+const MAX_MSG_LENGTH = 2000;   // caractères max par message
+const RATE_WINDOW_MS = 3600000; // 1h
+const RATE_MAX = 30;           // requêtes par IP par heure
 
-function checkRateLimit(sessionId: string): boolean {
+// Rate limiting par IP (plus difficile à contourner que sessionId)
+const ipCounts = new Map<string, { count: number; reset: number }>();
+
+function getClientIp(req: NextRequest): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || req.headers.get('x-real-ip')
+    || 'unknown';
+}
+
+function checkRateLimit(ip: string): boolean {
   const now = Date.now();
-  const entry = sessionCounts.get(sessionId);
+  const entry = ipCounts.get(ip);
   if (!entry || now > entry.reset) {
-    sessionCounts.set(sessionId, { count: 1, reset: now + 3600000 }); // 1h window
+    ipCounts.set(ip, { count: 1, reset: now + RATE_WINDOW_MS });
     return true;
   }
-  if (entry.count >= 20) return false;
+  if (entry.count >= RATE_MAX) return false;
   entry.count++;
   return true;
 }
 
+// Nettoyage périodique mémoire (évite fuite sur long run)
+setInterval(() => {
+  const now = Date.now();
+  ipCounts.forEach((val, key) => {
+    if (now > val.reset) ipCounts.delete(key);
+  });
+}, 600000); // toutes les 10 min
+
+// Validation et sanitisation des messages
+function sanitizeMessages(raw: any[]): { role: 'user' | 'assistant'; content: string }[] {
+  if (!Array.isArray(raw)) return [];
+  const ALLOWED_ROLES = new Set(['user', 'assistant']);
+
+  return raw
+    .filter((m) => m && ALLOWED_ROLES.has(m.role) && typeof m.content === 'string' && m.content.trim())
+    .slice(-MAX_MESSAGES) // garder seulement les N derniers
+    .map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content.slice(0, MAX_MSG_LENGTH),
+    }));
+}
+
 export async function POST(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  const { messages, context } = await req.json();
-  const sessionId = context?.sessionId || 'anon';
-
-  // Rate limit : 20 messages par session
-  if (!checkRateLimit(sessionId)) {
+  // Rate limit par IP
+  const clientIp = getClientIp(req);
+  if (!checkRateLimit(clientIp)) {
     return Response.json(
-      { error: 'Limite de messages atteinte. Rafraîchissez la page pour une nouvelle session.' },
+      { error: 'Trop de requêtes. Réessayez dans quelques minutes.' },
       { status: 429 }
     );
+  }
+
+  const body = await req.json();
+  const context = body.context;
+
+  // Valider et sanitiser les messages (bloque injection de role "system", tronque, limite l'historique)
+  const messages = sanitizeMessages(body.messages);
+  if (messages.length === 0) {
+    return Response.json({ error: 'Message invalide.' }, { status: 400 });
   }
 
   // 1. Charger les produits filtrés par typologies (actifs et non exclus uniquement)
@@ -50,28 +86,31 @@ export async function POST(req: NextRequest) {
     query = query.in('categorie', context.typologies);
   }
 
-  const { data: allProducts } = await query.limit(500);
+  const { data: allProducts } = await query.limit(2000);
   if (!allProducts || allProducts.length === 0) {
     return Response.json({ fallback: true, products: [], message: 'Aucun produit trouvé pour ces critères.' });
   }
 
-  // 2. Charger les prix de vente
+  // 2. Charger les prix de vente (par batches pour éviter URL trop longues)
   const productIds = allProducts.map((p) => p.id);
-  const { data: prices } = await supabase
-    .from('prices')
-    .select('product_id, qte_min, prix_ht')
-    .in('product_id', productIds)
-    .order('qte_min');
+  const allPrices: { product_id: string; qte_min: number; prix_ht: number }[] = [];
+  for (let i = 0; i < productIds.length; i += 200) {
+    const batch = productIds.slice(i, i + 200);
+    const { data } = await supabase
+      .from('prices')
+      .select('product_id, qte_min, prix_ht')
+      .in('product_id', batch)
+      .order('qte_min');
+    if (data) allPrices.push(...data);
+  }
 
   const margin = await getMargin('cybernecard');
 
   // Map product_id → prix vente min (palier qte_min le plus bas)
   const prixMap = new Map<string, number>();
-  if (prices) {
-    for (const p of prices) {
-      if (!prixMap.has(p.product_id)) {
-        prixMap.set(p.product_id, Math.ceil(Number(p.prix_ht) * margin.coefficient * 100) / 100);
-      }
+  for (const p of allPrices) {
+    if (!prixMap.has(p.product_id)) {
+      prixMap.set(p.product_id, Math.ceil(Number(p.prix_ht) * margin.coefficient * 100) / 100);
     }
   }
 
@@ -83,6 +122,7 @@ export async function POST(req: NextRequest) {
     nb_personnes: context?.nb_personnes,
     usage: context?.usage,
     style: context?.style,
+    repartition_hf: context?.repartition_hf,
     priorites: context?.priorites,
   }, prixMap);
 
@@ -120,10 +160,7 @@ export async function POST(req: NextRequest) {
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
       system: systemPrompt,
-      messages: messages.map((m: any) => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages,
     }, { signal: controller.signal });
 
     clearTimeout(timeout);

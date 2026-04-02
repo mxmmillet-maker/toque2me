@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { getMargin } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
+// Rate limit : 60 requêtes/heure/IP
+const pricingRates = new Map<string, { count: number; reset: number }>();
+
 export async function GET(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const now = Date.now();
+  const rate = pricingRates.get(ip);
+  if (!rate || now > rate.reset) {
+    pricingRates.set(ip, { count: 1, reset: now + 3600000 });
+  } else if (rate.count >= 60) {
+    return NextResponse.json({ error: 'Trop de requêtes.' }, { status: 429 });
+  } else {
+    rate.count++;
+  }
 
   const ref = req.nextUrl.searchParams.get('ref');
   const qty = parseInt(req.nextUrl.searchParams.get('qty') || '1');

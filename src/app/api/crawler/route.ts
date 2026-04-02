@@ -32,6 +32,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'URL invalide' }, { status: 400 });
   }
 
+  // Protection SSRF — bloquer IPs privées et protocoles dangereux
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    return NextResponse.json({ error: 'Protocole non autorisé' }, { status: 400 });
+  }
+  const hostname = parsedUrl.hostname.toLowerCase();
+  const blockedPatterns = ['localhost', '127.0.0.1', '0.0.0.0', '[::1]', '169.254.', '10.', '172.16.', '172.17.', '172.18.', '172.19.', '172.20.', '172.21.', '172.22.', '172.23.', '172.24.', '172.25.', '172.26.', '172.27.', '172.28.', '172.29.', '172.30.', '172.31.', '192.168.', '.internal', '.local'];
+  if (blockedPatterns.some(p => hostname === p || hostname.startsWith(p) || hostname.endsWith(p))) {
+    return NextResponse.json({ error: 'URL non autorisée' }, { status: 400 });
+  }
+
   try {
     // Timeout 5s
     const res = await fetch(parsedUrl.toString(), {

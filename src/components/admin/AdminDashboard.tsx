@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { updateMargin as updateMarginAction } from '@/app/admin/actions';
 
 interface Margin {
   id: string;
@@ -44,12 +45,8 @@ export function AdminDashboard({ stats }: { stats: Stats }) {
 
   const updateMargin = async (id: string, field: string, value: number) => {
     setSaving(true);
-    const res = await fetch('/api/admin/margins', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, [field]: value }),
-    });
-    if (res.ok) {
+    const result = await updateMarginAction(id, field, value);
+    if (result.ok) {
       setMargins((prev) =>
         prev.map((m) => (m.id === id ? { ...m, [field]: value } : m))
       );

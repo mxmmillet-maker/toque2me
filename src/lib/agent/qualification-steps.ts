@@ -225,6 +225,7 @@ export function qualificationToPromptContext(ctx: QualificationContext) {
     secteur: ctx.secteur,
     metier: ctx.metier,
     style: ctx.style,
+    repartition_hf: ctx.repartition_hf,
     usage: environnementToUsage(ctx.environnement),
     budget_global: ctx.a_budget
       ? (ctx.budget_global ?? BUDGET_TRANCHE_MAP[ctx.budget_tranche ?? ''] ?? undefined)

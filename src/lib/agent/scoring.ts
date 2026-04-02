@@ -8,6 +8,7 @@ export interface ScoringCriteria {
   nb_personnes?: number;     // effectif à équiper
   usage?: string;            // 'evenement' | 'quotidien' | 'image'
   style?: string;            // 'casual' | 'chic' | 'sportswear' | 'classique'
+  repartition_hf?: string;   // 'homme' | 'femme' | 'mixte'
   priorites?: {
     durabilite: number;
     origine: number;
@@ -150,9 +151,18 @@ export function scoreProducts(
   for (const p of products) {
     let score = 0;
 
-    // 0. Exclure les produits enfant + détecter genre et style
+    // 0. Exclure les produits enfant + filtrer par genre + détecter style
     const genre = detectGenre(p.nom || '');
     if (genre === 'Enfant') continue;
+
+    // Filtrage genre : exclure les produits du genre opposé selon la répartition H/F
+    const rep = criteria.repartition_hf;
+    if (rep === '100h' && genre === 'Femme') continue;
+    if (rep === '100f' && genre === 'Homme') continue;
+    // Majorité : on garde tout mais on pénalise le genre minoritaire
+    if (rep === 'maj_h' && genre === 'Femme') score -= 15;
+    if (rep === 'maj_f' && genre === 'Homme') score -= 15;
+
     // Style manuel (depuis la base) prime sur la détection auto
     const productStyle = p.style || detectStyle(p.nom || '', p.description || '', p.categorie || '');
 
@@ -170,9 +180,10 @@ export function scoreProducts(
       if (conforme) score += 20;
     }
 
-    // 3. Prix — élimine si une seule pièce dépasse le budget par personne
+    // 3. Prix — exclure les produits sans prix (non chiffrables) et ceux qui dépassent le budget
     const prixVente = prixMap.get(p.id);
-    if (budgetParPersonne && prixVente && prixVente > budgetParPersonne) {
+    if (!prixVente) continue; // pas de prix = pas proposable
+    if (budgetParPersonne && prixVente > budgetParPersonne) {
       continue;
     }
 
@@ -184,8 +195,8 @@ export function scoreProducts(
     // Premium / finitions (pondérée par usage)
     score += (p.score_premium || 50) * weights.premium;
 
-    // Bonus si le produit a un prix (chiffrable = actionnable)
-    if (prixVente) score += 8;
+    // Bonus si le produit a un prix (tous en ont maintenant grâce au filtre ci-dessus)
+    score += 8;
 
     // Score prix — favorise les produits qui laissent de la marge
     // pour d'autres pièces dans le mix
@@ -216,6 +227,99 @@ export function scoreProducts(
     // Bonus style — fort bonus si le style du produit matche le style demandé
     if (criteria.style && productTags.style.includes(criteria.style)) score += 15;
     else if (criteria.style && productStyle === criteria.style) score += 10;
+
+    // ── Pénalités produits inadaptés au contexte ──────────────────────────
+    const nomLower = (p.nom || '').toLowerCase();
+    const descLower = (p.description || '').toLowerCase();
+    const sect = criteria.secteur || '';
+    const sty = criteria.style || '';
+
+    // Produits globalement rares en pro
+    if (nomLower.includes('bermuda') || nomLower.includes('short')) score -= 50;
+    if (nomLower.includes('dentelle') || nomLower.includes('brassière') || nomLower.includes('lingerie')) score -= 50;
+    if (nomLower.includes('débardeur') || nomLower.includes('fines bretelles')) score -= 25;
+    // Accessoires de tablier (pas un vrai tablier)
+    if ((nomLower.includes('lani') && nomLower.includes('tablier')) || nomLower.includes('attache pour tablier') || nomLower.includes('set d')) {
+      score -= 50;
+    }
+
+    // Oversize / épaules tombantes → pas classique, pas BTP, pas resto
+    if ((nomLower.includes('oversize') || nomLower.includes('épaules tombantes')) &&
+        (sty === 'classique' || sect === 'btp' || sect === 'restauration' || sect === 'industrie')) {
+      score -= 25;
+    }
+
+    // Éponge → casual/plage, inadapté en contexte pro
+    if (nomLower.includes('éponge')) {
+      if (sect === 'btp' || sect === 'industrie' || sect === 'restauration') score -= 30;
+      else if (sty === 'classique' || sty === 'chic') score -= 25;
+    }
+
+    // Molleton / jogging → pas classique, pas chic, pas service en salle
+    if ((nomLower.includes('molleton') || nomLower.includes('jogging')) &&
+        (sty === 'classique' || sty === 'chic')) {
+      score -= 30;
+    }
+
+    // Sherpa / velours côtelé → casual, pas salon pro ni classique
+    if ((nomLower.includes('sherpa') || nomLower.includes('velours côtelé')) &&
+        (sty === 'classique' || sty === 'chic')) {
+      score -= 20;
+    }
+
+    // Doudoune → pas adapté en intérieur (resto, bureau)
+    if (nomLower.includes('doudoune') &&
+        (sect === 'restauration' || (sect === 'entreprise' && sty !== 'sportswear'))) {
+      score -= 20;
+    }
+
+    // French Terry (t-shirt épais) → pas pour BTP/industrie (trop fragile) ni classique
+    if (nomLower.includes('french terry') && (sect === 'btp' || sect === 'industrie' || sty === 'classique')) {
+      score -= 15;
+    }
+
+    // ── Bonus produits bien adaptés au contexte ──────────────────────────
+
+    // Restauration : bonus produits métier
+    if (sect === 'restauration') {
+      if (nomLower.includes('tablier') && !nomLower.includes('lanière') && !nomLower.includes('attache') && !nomLower.includes('set d')) score += 20;
+      if (nomLower.includes('chino')) score += 10;
+      if (nomLower.includes('maille piquée') && !nomLower.includes('épaules tombantes')) score += 10;
+      if (nomLower.includes('cuisine') || nomLower.includes('chef') || nomLower.includes('cuisinier')) score += 25;
+      if (nomLower.includes('pantalon de cuisine') || nomLower.includes('pantalon cuisine')) score += 20;
+      if (nomLower.includes('veste de cuisine') || nomLower.includes('veste chef')) score += 25;
+      if (nomLower.includes('toque') || nomLower.includes('calot')) score += 10;
+      if (nomLower.includes('bavette') && !nomLower.includes('lanière')) score += 10; // tablier à bavette
+      if (nomLower.includes('lavage haute température') || nomLower.includes('60°') || descLower.includes('60°')) score += 10;
+      // Pénalité : produits inadaptés en cuisine
+      if (nomLower.includes('jardinage') || nomLower.includes('jardinier') || nomLower.includes('métallurgie')) score -= 30;
+    }
+
+    // BTP/Industrie : bonus vêtements résistants, haute visibilité
+    if (sect === 'btp' || sect === 'industrie') {
+      if (nomLower.includes('haute visibilité') || nomLower.includes('hi-viz') || nomLower.includes('fluo')) score += 15;
+      if (nomLower.includes('multipoches') || nomLower.includes('cargo')) score += 10;
+      if (nomLower.includes('softshell') || nomLower.includes('parka')) score += 10;
+    }
+
+    // Corporate/Entreprise : bonus chemises, polos classiques
+    if (sect === 'entreprise') {
+      if (nomLower.includes('chemise')) score += 10;
+      if (nomLower.includes('maille piquée') && !nomLower.includes('épaules tombantes')) score += 10;
+      if (nomLower.includes('oxford') || nomLower.includes('popeline')) score += 10;
+    }
+
+    // Sportswear : bonus matières techniques
+    if (sty === 'sportswear') {
+      if (nomLower.includes('technique') || nomLower.includes('respirant') || nomLower.includes('sport')) score += 10;
+      if (nomLower.includes('zippé')) score += 5;
+    }
+
+    // Chic : bonus matières premium
+    if (sty === 'chic') {
+      if (nomLower.includes('piqué') && !nomLower.includes('épaules tombantes')) score += 10;
+      if (nomLower.includes('oxford') || nomLower.includes('popeline') || nomLower.includes('premium')) score += 10;
+    }
 
     // Bonus secteur
     if (criteria.secteur && (p.secteurs || []).includes(criteria.secteur)) score += 8;
@@ -293,9 +397,13 @@ export function getTop(products: ScoredProduct[], n: number): ScoredProduct[] {
   const seenRefs = new Set<string>();
   const seenModels = new Set<string>();
 
-  // Pass 1 : meilleur produit de chaque catégorie
+  // Seuil minimum : ne pas proposer de produits avec un score trop faible
+  const minScore = products.length > 0 ? Math.max(products[0].score * 0.3, 10) : 10;
+
+  // Pass 1 : meilleur produit de chaque catégorie (si score suffisant)
   for (const p of products) {
     if (picked.length >= n) break;
+    if (p.score < minScore) continue;
     const cat = p.categorie.toLowerCase();
     const mk = modelKey(p.nom);
     if (!seenCategories.has(cat) && !seenRefs.has(p.ref_fournisseur) && !seenModels.has(mk)) {
@@ -309,6 +417,7 @@ export function getTop(products: ScoredProduct[], n: number): ScoredProduct[] {
   // Pass 2 : compléter avec les meilleurs restants (sans doublons)
   for (const p of products) {
     if (picked.length >= n) break;
+    if (p.score < minScore) continue;
     const mk = modelKey(p.nom);
     if (!seenRefs.has(p.ref_fournisseur) && !seenModels.has(mk)) {
       picked.push(p);

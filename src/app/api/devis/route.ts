@@ -1,20 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { getMargin } from '@/lib/pricing';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
+// Rate limit simple : 10 devis/heure/IP
+const devisRates = new Map<string, { count: number; reset: number }>();
+
 export async function POST(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  const now = Date.now();
+  const rate = devisRates.get(ip);
+  if (!rate || now > rate.reset) {
+    devisRates.set(ip, { count: 1, reset: now + 3600000 });
+  } else if (rate.count >= 10) {
+    return NextResponse.json({ error: 'Trop de devis créés. Réessayez plus tard.' }, { status: 429 });
+  } else {
+    rate.count++;
+  }
 
   const { ref, qty, client_id } = await req.json();
 
   if (!ref || !qty) {
     return NextResponse.json({ error: 'ref and qty required' }, { status: 400 });
+  }
+
+  // Validation des inputs
+  if (typeof ref !== 'string' || ref.length > 20) {
+    return NextResponse.json({ error: 'ref invalide' }, { status: 400 });
+  }
+  const qtyNum = Number(qty);
+  if (!Number.isInteger(qtyNum) || qtyNum < 1 || qtyNum > 10000) {
+    return NextResponse.json({ error: 'qty doit être entre 1 et 10000' }, { status: 400 });
   }
 
   // 1. Produit

@@ -8,9 +8,18 @@ export interface NormeDetail {
   description: string;
 }
 
+export interface TrousseauPiece {
+  piece: string;
+  categorie: string; // veste, pantalon, tablier, coiffe, chaussures, chemise, tunique, blouse, gilet, accessoire
+  obligatoire: boolean;
+  contraintes?: string[];
+}
+
 export interface MetierProfile {
   label: string;
   normes: NormeDetail[];
+  trousseau: TrousseauPiece[];
+  pieces_interdites?: string[];
   consignes_specifiques?: string[];
 }
 
@@ -41,6 +50,14 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 14404', label: 'Protection des genoux', obligatoire: true, description: 'Pantalon ou genouillère classe 1 ou 2 selon la dureté du sol' },
           { code: 'EN 388', label: 'Gants protection mécanique', obligatoire: true, description: 'Niveau 3 minimum en résistance à l\'abrasion et à la déchirure' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail multipoche renforcé genoux', categorie: 'pantalon', obligatoire: true, contraintes: ['tissu 300g/m² minimum', 'compatible EN 14404'] },
+          { piece: 'T-shirt ou polo de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Veste de travail ou blouson', categorie: 'veste', obligatoire: true },
+          { piece: 'Gilet haute visibilité EN ISO 20471 cl.2', categorie: 'gilet', obligatoire: true },
+          { piece: 'Chaussures de sécurité montantes S3', categorie: 'chaussures', obligatoire: true, contraintes: ['EN ISO 20345', 'semelle anti-perforation'] },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'sandale', 'tong', 'débardeur'],
         consignes_specifiques: ['Pantalon renforcé aux genoux obligatoire', 'Tissu résistant à l\'abrasion recommandé (>200 tours Martindale)'],
       },
       electricien: {
@@ -50,6 +67,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 1149', label: 'Vêtement antistatique', obligatoire: true, description: 'Évite les décharges électrostatiques' },
           { code: 'EN 60903', label: 'Gants isolants électriques', obligatoire: true, description: 'Classe 0 à 4 selon tension' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail multipoche (tissu ignifuge ou FR)', categorie: 'pantalon', obligatoire: true, contraintes: ['sans métal apparent', 'pas de zip métal ni bouton pression métal'] },
+          { piece: 'Polo ou T-shirt de travail', categorie: 'tshirt', obligatoire: true, contraintes: ['pas de synthétique pur en zone électrique'] },
+          { piece: 'Veste de travail sans élément métallique', categorie: 'veste', obligatoire: true, contraintes: ['zip plastique uniquement', 'boutons cachés ou pressions plastique'] },
+          { piece: 'Chaussures de sécurité isolantes S3', categorie: 'chaussures', obligatoire: true, contraintes: ['EN ISO 20345', 'propriétés isolantes'] },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'sandale', 'tong', 'débardeur', 'vêtement avec zip métal'],
         consignes_specifiques: ['Aucun métal apparent sur le vêtement', 'Tissu ignifugé recommandé en plus de l\'antistatique'],
       },
       peintre: {
@@ -58,6 +82,12 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 13034', label: 'Protection projections chimiques légères', obligatoire: true, description: 'Type 6 — protection contre les éclaboussures de peinture et solvants' },
           { code: 'EN 374', label: 'Gants protection chimique', obligatoire: true, description: 'Résistance aux solvants et peintures' },
         ],
+        trousseau: [
+          { piece: 'Combinaison de travail ou ensemble pantalon + veste', categorie: 'combinaison', obligatoire: true, contraintes: ['blanc traditionnel', 'polycoton'] },
+          { piece: 'T-shirt de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Chaussures de sécurité S1P ou S3', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'sandale', 'tong'],
         consignes_specifiques: ['Combinaison jetable recommandée pour travaux en hauteur', 'Lunettes de protection obligatoires (non textile)'],
       },
       conducteur_engins: {
@@ -65,6 +95,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
         normes: [
           { code: 'EN ISO 20471 Cl.3', label: 'Haute visibilité classe 3', obligatoire: true, description: 'Veste ou combinaison classe 3 pour engins de chantier' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail coupe ajustée', categorie: 'pantalon', obligatoire: true, contraintes: ['pas d\'éléments flottants'] },
+          { piece: 'Polo ou T-shirt de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Gilet ou veste haute visibilité EN ISO 20471 cl.3', categorie: 'gilet', obligatoire: true },
+          { piece: 'Chaussures de sécurité S3', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'capuche libre', 'écharpe', 'lacets pendants'],
         consignes_specifiques: ['Tenue ajustée sans élément flottant pouvant se coincer dans les commandes'],
       },
       plombier: {
@@ -73,6 +110,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN ISO 11612', label: 'Protection chaleur et flamme', obligatoire: false, description: 'Recommandé pour travaux de soudure ou brasage' },
           { code: 'EN 374', label: 'Gants protection chimique', obligatoire: true, description: 'Pour manipulation de fluides et produits chimiques' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail multipoche renforcé genoux', categorie: 'pantalon', obligatoire: true, contraintes: ['genouillères EN 14404 recommandées'] },
+          { piece: 'Polo ou T-shirt de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Veste de travail ou softshell', categorie: 'veste', obligatoire: true },
+          { piece: 'Chaussures de sécurité S2 ou S3', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'sandale', 'tong'],
         consignes_specifiques: ['Genoux renforcés recommandés pour travaux en gaine technique'],
       },
     },
@@ -90,16 +134,34 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
         normes: [
           { code: 'EN ISO 11612 A1', label: 'Protection chaleur limitée', obligatoire: false, description: 'Recommandé pour les brigades fréquemment exposées aux flammes' },
         ],
+        trousseau: [
+          { piece: 'Veste de cuisine double boutonnage', categorie: 'veste', obligatoire: true, contraintes: ['blanche ou couleur', 'manches longues', 'coton ou polycoton 65/35', 'lavable 60°C minimum'] },
+          { piece: 'Pantalon de cuisine', categorie: 'pantalon', obligatoire: true, contraintes: ['pied-de-poule ou noir', 'taille élastiquée ou cordon', 'pas de revers'] },
+          { piece: 'Tablier de cuisine (bavette ou demi-chef)', categorie: 'tablier', obligatoire: true, contraintes: ['coton ou polycoton'] },
+          { piece: 'Toque, calot ou bandana (coiffe cuisine)', categorie: 'coiffe', obligatoire: true, contraintes: ['hygiène HACCP'] },
+          { piece: 'Chaussures de sécurité cuisine antidérapantes SRC', categorie: 'chaussures', obligatoire: true, contraintes: ['sabot ou mocassin', 'EN ISO 20347'] },
+          { piece: 'Tour de cou', categorie: 'accessoire', obligatoire: false },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'débardeur', 'bonnet streetwear', 'sandale', 'tong', 'jean', 'blouse de bureau', 'polo'],
         consignes_specifiques: [
           'Lavage 60°C MINIMUM — vérifier l\'étiquette produit avant de proposer',
-          'Veste de cuisine double boutonnage recommandée (protection chaleur)',
+          'Veste de cuisine double boutonnage recommandée (protection chaleur + retournement en service)',
           'Tissu 65% polyester / 35% coton = meilleur compromis entretien / résistance',
           'Pantalon cuisine : taille élastiquée ou cordon recommandé',
+          'Pas de poche ouverte au-dessus de la taille (risque de chute dans les préparations)',
         ],
       },
       boulanger_patissier: {
         label: 'Boulanger / Pâtissier',
         normes: [],
+        trousseau: [
+          { piece: 'Veste de cuisine blanche', categorie: 'veste', obligatoire: true, contraintes: ['blanc obligatoire', 'lavable 60°C'] },
+          { piece: 'Pantalon pied-de-poule ou blanc', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Tablier bavette blanc', categorie: 'tablier', obligatoire: true },
+          { piece: 'Calot ou toque', categorie: 'coiffe', obligatoire: true, contraintes: ['hygiène HACCP'] },
+          { piece: 'Chaussures de sécurité antidérapantes SRC blanches', categorie: 'chaussures', obligatoire: true, contraintes: ['EN ISO 20347'] },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'débardeur', 'bonnet streetwear', 'sandale', 'jean', 'vêtement de couleur foncée'],
         consignes_specifiques: [
           'Blanc obligatoire dans la plupart des boulangeries (visibilité des salissures)',
           'Tablier imperméable recommandé pour pâtisserie (crèmes, glaçages)',
@@ -113,11 +175,27 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 388 Niv.5', label: 'Gants anti-coupures niveau 5', obligatoire: true, description: 'Résistance maximale aux coupures — obligatoire manipulation couteaux' },
           { code: 'EN 13034', label: 'Protection projections', obligatoire: false, description: 'Tablier protection sang et liquides biologiques' },
         ],
+        trousseau: [
+          { piece: 'Veste de cuisine ou veste de boucher blanche', categorie: 'veste', obligatoire: true, contraintes: ['manches longues', 'lavable 60°C'] },
+          { piece: 'Pantalon blanc ou bleu', categorie: 'pantalon', obligatoire: true, contraintes: ['taille élastiquée'] },
+          { piece: 'Tablier imperméable PVC ou cuir', categorie: 'tablier', obligatoire: true, contraintes: ['protection sang et liquides'] },
+          { piece: 'Calot ou charlotte', categorie: 'coiffe', obligatoire: true },
+          { piece: 'Chaussures de sécurité antidérapantes SRC ou bottes blanches', categorie: 'chaussures', obligatoire: true, contraintes: ['bottes blanches en labo de découpe'] },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'débardeur', 'sandale', 'jean', 'bonnet streetwear'],
         consignes_specifiques: ['Tablier PVC ou cuir recommandé par-dessus le textile', 'Lavage 60°C MINIMUM'],
       },
       serveur: {
         label: 'Serveur / Personnel de salle',
         normes: [],
+        trousseau: [
+          { piece: 'Chemise ou chemisier', categorie: 'chemise', obligatoire: true, contraintes: ['blanc classique ou couleur selon établissement'] },
+          { piece: 'Pantalon de service', categorie: 'pantalon', obligatoire: true, contraintes: ['noir', 'coupe droite ou slim'] },
+          { piece: 'Chaussures de ville antidérapantes', categorie: 'chaussures', obligatoire: true, contraintes: ['noires', 'fermées'] },
+          { piece: 'Tablier de service (demi-chef ou bistrot)', categorie: 'tablier', obligatoire: true, contraintes: ['avec poche pour carnet/stylo'] },
+          { piece: 'Gilet de service', categorie: 'gilet', obligatoire: false, contraintes: ['noir ou anthracite', 'restaurants gastronomiques'] },
+        ],
+        pieces_interdites: ['bermuda', 'tong', 'sandale', 'jean troué', 'sweat à capuche', 'bonnet', 'baskets'],
         consignes_specifiques: [
           'Priorité au confort et à l\'image (pas de norme EPI obligatoire en salle)',
           'Chaussures antidérapantes SRC fortement recommandées',
@@ -128,6 +206,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
       traiteur: {
         label: 'Traiteur / Événementiel',
         normes: [],
+        trousseau: [
+          { piece: 'Veste de cuisine ou veste de service', categorie: 'veste', obligatoire: true },
+          { piece: 'Pantalon de service noir', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Tablier de service', categorie: 'tablier', obligatoire: true },
+          { piece: 'Chaussures fermées antidérapantes', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'tong', 'sandale', 'bonnet streetwear'],
         consignes_specifiques: [
           'Image de marque prioritaire — style élégant recommandé',
           'Tablier protection recommandé lors du service',
@@ -150,6 +235,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 1149', label: 'Vêtement antistatique', obligatoire: false, description: 'Obligatoire si présence de matières inflammables ou électronique sensible' },
           { code: 'EN 388', label: 'Gants protection mécanique', obligatoire: true, description: 'Niveau adapté au risque de coupure/abrasion sur poste' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail ou combinaison', categorie: 'pantalon', obligatoire: true },
+          { piece: 'T-shirt ou polo de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Blouse ou veste de travail', categorie: 'veste', obligatoire: true, contraintes: ['manches ajustées'] },
+          { piece: 'Chaussures de sécurité S2 ou S3', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'écharpe', 'capuche libre', 'lacets pendants'],
         consignes_specifiques: ['Aucun élément flottant (lacets, capuche) près des machines tournantes', 'Manches longues ou courtes selon risque d\'accrochage'],
       },
       soudeur: {
@@ -159,6 +251,14 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN ISO 11612', label: 'Protection chaleur et flamme', obligatoire: true, description: 'Associé à EN ISO 11611 pour protection complète' },
           { code: 'EN 1149', label: 'Antistatique', obligatoire: true, description: 'Évite les amorçages' },
         ],
+        trousseau: [
+          { piece: 'Veste de soudeur EN ISO 11611 (col montant, manches longues)', categorie: 'veste', obligatoire: true, contraintes: ['100% coton ou FR', 'JAMAIS synthétique'] },
+          { piece: 'Pantalon de soudeur EN ISO 11611 (sans revers)', categorie: 'pantalon', obligatoire: true, contraintes: ['100% coton ou FR'] },
+          { piece: 'Tablier de soudeur cuir ou cuir croûté', categorie: 'tablier', obligatoire: true },
+          { piece: 'Chaussures de sécurité montantes S3 HRO', categorie: 'chaussures', obligatoire: true, contraintes: ['résistance chaleur semelle'] },
+          { piece: 'Guêtres de soudeur', categorie: 'accessoire', obligatoire: true },
+        ],
+        pieces_interdites: ['tout vêtement synthétique', 'bermuda', 'short', 'débardeur', 'tong', 'baskets'],
         consignes_specifiques: ['Tissu 100% coton ou FR traité UNIQUEMENT — jamais synthétique pur', 'Pas de coutures synthétiques apparentes'],
       },
       logisticien: {
@@ -166,6 +266,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
         normes: [
           { code: 'EN ISO 20471 Cl.2', label: 'Haute visibilité classe 2', obligatoire: true, description: 'Obligatoire en entrepôt avec chariots élévateurs' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail ou cargo', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Polo ou T-shirt de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Gilet haute visibilité EN ISO 20471 cl.2', categorie: 'gilet', obligatoire: true },
+          { piece: 'Chaussures de sécurité S3', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['sandale', 'tong'],
         consignes_specifiques: ['Résistance au froid recommandée si entrepôt frigorifique (EN 342)', 'Chaussures S3 recommandées pour charges lourdes'],
       },
       chimiste: {
@@ -175,6 +282,12 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 374', label: 'Gants protection chimique', obligatoire: true, description: 'Adapter selon les agents chimiques manipulés' },
           { code: 'EN 1149', label: 'Antistatique', obligatoire: false, description: 'Obligatoire si produits inflammables' },
         ],
+        trousseau: [
+          { piece: 'Blouse de laboratoire blanche 100% coton', categorie: 'blouse', obligatoire: true, contraintes: ['manches longues', 'boutons pression', 'longueur genoux'] },
+          { piece: 'Pantalon long', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Chaussures fermées plates', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'short', 'sandale', 'talon', 'vêtement synthétique sous la blouse'],
         consignes_specifiques: ['Blouse ou combinaison fermée obligatoire', 'Tissu résistant aux acides recommandé selon protocole'],
       },
     },
@@ -192,16 +305,35 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
         normes: [
           { code: 'EN 374', label: 'Gants protection biologique', obligatoire: true, description: 'Non-textile — pour information contexte' },
         ],
+        trousseau: [
+          { piece: 'Tunique médicale (col V ou rond, manches courtes)', categorie: 'tunique', obligatoire: true, contraintes: ['blanche ou couleur service', 'lavable 60°C', 'manches courtes obligatoires'] },
+          { piece: 'Pantalon médical', categorie: 'pantalon', obligatoire: true, contraintes: ['taille élastiquée', 'blanc ou couleur service'] },
+          { piece: 'Chaussures médicales antidérapantes SRC', categorie: 'chaussures', obligatoire: true, contraintes: ['sabots ou mocassins', 'EN ISO 20347'] },
+        ],
+        pieces_interdites: ['jean', 'bermuda', 'sandale', 'vêtement de ville', 'bijoux mains/poignets'],
         consignes_specifiques: ['Lavage 60°C MINIMUM — norme établissements de santé', 'Tissu résistant aux désinfectants recommandé', 'Poche pratique avec fermeture recommandée'],
       },
       medecin: {
         label: 'Médecin / Praticien',
         normes: [],
+        trousseau: [
+          { piece: 'Blouse médicale blanche manches longues', categorie: 'blouse', obligatoire: true, contraintes: ['lavable 60°C'] },
+          { piece: 'Tunique médicale (sous blouse)', categorie: 'tunique', obligatoire: false },
+          { piece: 'Pantalon médical', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Chaussures médicales', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['jean', 'bermuda', 'sandale'],
         consignes_specifiques: ['Blouse blanche ou couleur établissement', 'Tissu facile entretien, résistant désinfectants', 'Lavage 60°C'],
       },
       aide_domicile: {
         label: 'Aide à domicile / EHPAD',
         normes: [],
+        trousseau: [
+          { piece: 'Tunique ou blouse professionnelle', categorie: 'tunique', obligatoire: true, contraintes: ['couleur selon structure'] },
+          { piece: 'Pantalon confortable (type médical ou chino)', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Chaussures fermées confortables antidérapantes', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'sandale', 'tong'],
         consignes_specifiques: ['Tenue confortable pour mobilité — pas d\'EPI obligatoire hors soins', 'Couleur identifiable recommandée (image de l\'établissement)', 'Lavage 40-60°C'],
       },
     },
@@ -221,6 +353,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN 343', label: 'Protection pluie et intempéries', obligatoire: false, description: 'Classe 3/3 pour travaux en conditions météo difficiles' },
           { code: 'EN 342', label: 'Protection contre le froid', obligatoire: false, description: 'Si travaux en conditions hivernales' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail multipoche renforcé genoux', categorie: 'pantalon', obligatoire: true, contraintes: ['tissu 300g/m²+', 'résistant ronces'] },
+          { piece: 'T-shirt ou polo de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Veste de travail ou softshell', categorie: 'veste', obligatoire: true },
+          { piece: 'Chaussures de sécurité S3', categorie: 'chaussures', obligatoire: true, contraintes: ['anti-perforation'] },
+        ],
+        pieces_interdites: ['sandale', 'tong'],
         consignes_specifiques: ['Tissu résistant aux ronces et abrasion recommandé', 'Multipoche fonctionnel recommandé'],
       },
       tronconneur: {
@@ -230,6 +369,12 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN ISO 17249', label: 'Chaussures anti-coupures tronçonneuse', obligatoire: true, description: 'Classe 1 ou 2 selon vitesse chaîne' },
           { code: 'EN 397', label: 'Casque protection', obligatoire: true, description: 'Avec visière EN 1731 et protection auditives EN 352' },
         ],
+        trousseau: [
+          { piece: 'Pantalon anti-coupures tronçonneuse EN ISO 11393', categorie: 'pantalon', obligatoire: true, contraintes: ['classe 1 ou 2', 'fibres aramides'] },
+          { piece: 'Veste de travail ajustée', categorie: 'veste', obligatoire: true, contraintes: ['pas d\'éléments flottants'] },
+          { piece: 'Chaussures anti-coupures EN ISO 17249', categorie: 'chaussures', obligatoire: true, contraintes: ['montantes'] },
+        ],
+        pieces_interdites: ['pantalon de travail classique', 'baskets', 'bermuda', 'short'],
         consignes_specifiques: ['Ces normes sont des NORMES DURES — aucun compromis possible', 'Le pantalon anti-coupure N\'EST PAS un pantalon de travail classique'],
       },
     },
@@ -245,6 +390,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
       agent_securite: {
         label: 'Agent de sécurité / Vigile',
         normes: [],
+        trousseau: [
+          { piece: 'Polo ou chemise corporate', categorie: 'chemise', obligatoire: true, contraintes: ['marine, noir ou gris'] },
+          { piece: 'Pantalon type cargo ou chino', categorie: 'pantalon', obligatoire: true, contraintes: ['tissu résistant'] },
+          { piece: 'Blouson ou parka', categorie: 'veste', obligatoire: true },
+          { piece: 'Chaussures de sécurité ou rangers', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'tong', 'sandale'],
         consignes_specifiques: [
           'Tenue corporate — image et autorité prioritaires',
           'Tissu résistant recommandé (usage intensif)',
@@ -257,6 +409,12 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
         normes: [
           { code: 'EN 469', label: 'Vêtement d\'intervention incendie', obligatoire: true, description: 'Niveau 1 ou 2 selon le rôle (SSIAP 1/2/3)' },
         ],
+        trousseau: [
+          { piece: 'Polo ou chemise corporate (hors intervention)', categorie: 'chemise', obligatoire: true },
+          { piece: 'Pantalon de service', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Chaussures de sécurité', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'tong', 'sandale'],
         consignes_specifiques: ['Norme EN 469 OBLIGATOIRE pour toute intervention', 'Hors intervention : tenue standard corporate'],
       },
     },
@@ -274,6 +432,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
         normes: [
           { code: 'EN 374', label: 'Gants protection chimique', obligatoire: true, description: 'Non-textile — pour information contexte' },
         ],
+        trousseau: [
+          { piece: 'Tunique ou blouse de travail', categorie: 'tunique', obligatoire: true },
+          { piece: 'Pantalon de travail', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Tablier imperméable', categorie: 'tablier', obligatoire: false },
+          { piece: 'Chaussures antidérapantes SRC', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['sandale', 'tong'],
         consignes_specifiques: [
           'Tenue résistante aux produits ménagers (javel, acides, bases)',
           'Tablier imperméable recommandé',
@@ -294,6 +459,14 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
       chauffeur_livreur: {
         label: 'Chauffeur-livreur',
         normes: [],
+        trousseau: [
+          { piece: 'Polo ou T-shirt corporate', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Pantalon de travail ou cargo', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Gilet haute visibilité', categorie: 'gilet', obligatoire: true },
+          { piece: 'Chaussures de sécurité confort', categorie: 'chaussures', obligatoire: true },
+          { piece: 'Blouson ou softshell', categorie: 'veste', obligatoire: false },
+        ],
+        pieces_interdites: ['sandale', 'tong'],
         consignes_specifiques: [
           'Gilet haute visibilité obligatoire dans le véhicule (Code de la route)',
           'Chaussures confort pour conduite longue recommandées',
@@ -306,6 +479,13 @@ export const NORMES_DB: Record<string, SecteurProfile> = {
           { code: 'EN ISO 20471 Cl.2', label: 'Haute visibilité classe 2', obligatoire: true, description: 'Obligatoire en entrepôt avec engins' },
           { code: 'EN 342', label: 'Protection froid', obligatoire: false, description: 'Si entrepôt frigorifique' },
         ],
+        trousseau: [
+          { piece: 'Pantalon de travail', categorie: 'pantalon', obligatoire: true },
+          { piece: 'Polo ou T-shirt de travail', categorie: 'tshirt', obligatoire: true },
+          { piece: 'Gilet haute visibilité EN ISO 20471 cl.2', categorie: 'gilet', obligatoire: true },
+          { piece: 'Chaussures de sécurité S3', categorie: 'chaussures', obligatoire: true },
+        ],
+        pieces_interdites: ['bermuda', 'écharpe', 'capuche libre', 'lacets pendants'],
         consignes_specifiques: ['Pas d\'éléments flottants près des engins', 'Casque recommandé si allées hautes denses'],
       },
     },
@@ -390,6 +570,39 @@ export function getMetiersList(secteur: string): { key: string; label: string }[
   const s = NORMES_DB[secteur];
   if (!s) return [];
   return Object.entries(s.metiers).map(([key, val]) => ({ key, label: val.label }));
+}
+
+/**
+ * Retourne le trousseau et les pièces interdites pour injection dans le system prompt
+ */
+export function getTrousseauLabel(secteur?: string, metier?: string): string {
+  if (!secteur) return '';
+
+  const secteurData = NORMES_DB[secteur];
+  if (!secteurData) return '';
+
+  if (!metier) return '';
+
+  const metierData = secteurData.metiers[metier];
+  if (!metierData) return '';
+
+  const lignes: string[] = [];
+
+  if (metierData.trousseau && metierData.trousseau.length > 0) {
+    lignes.push(`\n**TROUSSEAU STANDARD (${metierData.label}) — pièces à proposer :**`);
+    metierData.trousseau.forEach(t => {
+      const tag = t.obligatoire ? '✅ OBLIGATOIRE' : '💡 Recommandé';
+      const contraintes = t.contraintes ? ` (${t.contraintes.join(', ')})` : '';
+      lignes.push(`- ${tag} : ${t.piece}${contraintes}`);
+    });
+  }
+
+  if (metierData.pieces_interdites && metierData.pieces_interdites.length > 0) {
+    lignes.push(`\n**🚫 PIÈCES INTERDITES pour ${metierData.label} — NE JAMAIS PROPOSER :**`);
+    lignes.push(metierData.pieces_interdites.map(p => `- ${p}`).join('\n'));
+  }
+
+  return lignes.join('\n');
 }
 
 /**
