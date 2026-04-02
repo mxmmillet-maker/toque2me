@@ -140,23 +140,41 @@ async function syncPrices(prices: PriceGrid[], fournisseur: string) {
 // ─── Mise à jour prix_from (prix catalogue = palier min × marge) ─────────────
 
 async function updatePrixFrom(fournisseur: string) {
-  // Charger tous les produits du fournisseur
-  const { data: products } = await supabaseAdmin
-    .from('products')
-    .select('id, fournisseur, categorie')
-    .eq('fournisseur', fournisseur)
-    .eq('actif', true);
+  // Charger tous les produits du fournisseur (paginé)
+  const products: { id: string; fournisseur: string; categorie: string }[] = [];
+  let prodFrom = 0;
+  while (true) {
+    const { data } = await supabaseAdmin
+      .from('products')
+      .select('id, fournisseur, categorie')
+      .eq('fournisseur', fournisseur)
+      .eq('actif', true)
+      .range(prodFrom, prodFrom + 999);
+    if (!data || data.length === 0) break;
+    products.push(...data);
+    if (data.length < 1000) break;
+    prodFrom += 1000;
+  }
 
-  if (!products || products.length === 0) return;
+  if (products.length === 0) return;
 
-  // Charger tous les prix de ce fournisseur
-  const { data: allPrices } = await supabaseAdmin
-    .from('prices')
-    .select('product_id, qte_min, prix_ht')
-    .eq('fournisseur', fournisseur)
-    .order('qte_min', { ascending: true });
+  // Charger tous les prix de ce fournisseur (paginé — Supabase limite à 1000)
+  const allPrices: { product_id: string; qte_min: number; prix_ht: number }[] = [];
+  let priceFrom = 0;
+  while (true) {
+    const { data } = await supabaseAdmin
+      .from('prices')
+      .select('product_id, qte_min, prix_ht')
+      .eq('fournisseur', fournisseur)
+      .order('qte_min', { ascending: true })
+      .range(priceFrom, priceFrom + 999);
+    if (!data || data.length === 0) break;
+    allPrices.push(...data);
+    if (data.length < 1000) break;
+    priceFrom += 1000;
+  }
 
-  if (!allPrices || allPrices.length === 0) return;
+  if (allPrices.length === 0) return;
 
   // Prix min par produit (palier qte_min le plus bas)
   const minPrixAchat = new Map<string, number>();
