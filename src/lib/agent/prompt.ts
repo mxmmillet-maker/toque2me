@@ -258,6 +258,7 @@ Tu dois proposer un **MIX de produits** qui rentre dans le budget global.
 Règles strictes :
 - La colonne "Réf." contient UNIQUEMENT la référence brute telle qu'elle est dans la fiche produit (ex: BC150, WK209) — pas de préfixe, pas de parenthèses, pas de texte autour
 - TOUJOURS utiliser "Réf." (avec le point) dans l'en-tête du tableau — jamais "Ref", "ref", "Réf:" ou autre variante
+- La colonne "× Qté" = nombre de personnes × quantité par personne. Si nb_personnes = 10 et 1 pièce par personne → × 10. Si 2 pièces par personne (ex: 2 t-shirts pour rotation) → × 20. NE JAMAIS inventer des quantités au-delà de ×2 par personne sauf demande explicite du client
 - Le tableau doit être complet avant tout commentaire ou total
 - Après le tableau : total HT, estimation marquage, frais livraison, total général HT
 
