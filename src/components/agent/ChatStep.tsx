@@ -8,7 +8,6 @@ import {
   getStepsForContext,
   qualificationToPromptContext,
   buildQualificationSummary,
-  BUDGET_TRANCHE_MAP,
   type QualificationContext,
   type QualificationStep,
 } from '@/lib/agent/qualification-steps';
@@ -31,11 +30,10 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Qualification state
-  const secteur = context?.secteur || '';
-  const steps = useMemo(() => getStepsForContext(secteur), [secteur]);
+  const steps = useMemo(() => getStepsForContext(), []);
   const [stepIndex, setStepIndex] = useState(0);
   const [qualifDone, setQualifDone] = useState(false);
-  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>({ secteur });
+  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>({});
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
 
@@ -81,42 +79,38 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
     return Array.from(new Set(matches)).filter(r => !excluded.has(r) && r.length >= 3);
   }, [messages]);
 
-  // Current step
-  const currentStep: QualificationStep | null = !qualifDone && stepIndex < steps.length ? steps[stepIndex] : null;
-
-  // Handle single choice
-  const handleChoice = (step: QualificationStep, option: { value: string; label: string; alerte?: string }) => {
-    // Show alerte if present
-    if (option.alerte) {
-      setAlerteVisible(option.alerte);
-      setTimeout(() => setAlerteVisible(null), 3000);
+  // Current step — skip steps whose condition is not met
+  const currentStep: QualificationStep | null = useMemo(() => {
+    if (qualifDone) return null;
+    for (let i = stepIndex; i < steps.length; i++) {
+      const step = steps[i];
+      if (!step.condition || step.condition(qualifCtx)) {
+        if (i !== stepIndex) setStepIndex(i);
+        return step;
+      }
     }
+    return null;
+  }, [stepIndex, qualifCtx, qualifDone, steps]);
 
-    // Add as user message
-    setMessages(prev => [...prev, { role: 'user', content: option.label }]);
-
-    // Update qualification context
-    const newCtx = { ...qualifCtx, [step.id]: option.value };
-
-    // Special handling
-    if (step.id === 'budget_oui_non') {
-      newCtx.a_budget = option.value === 'oui';
+  // Preselect options on multi-select steps
+  useEffect(() => {
+    if (currentStep?.type === 'multi' && currentStep.preselect) {
+      const preselected = currentStep.preselect(qualifCtx);
+      if (preselected.length > 0) {
+        setMultiSelection(preselected);
+      }
     }
-    if (step.id === 'budget_tranche') {
-      newCtx.budget_global = BUDGET_TRANCHE_MAP[option.value];
-    }
+  }, [currentStep?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    setQualifCtx(newCtx);
-
-    // Determine next step
+  // Navigate to next step (shared logic)
+  const goToNext = (step: QualificationStep, value: string | string[], newCtx: Partial<QualificationContext>) => {
+    // If step has explicit next(), use it
     if (step.next) {
-      const nextId = step.next(option.value, newCtx);
+      const nextId = step.next(value, newCtx);
       if (nextId === null) {
-        // End of flow
         finishQualification(newCtx);
         return;
       }
-      // Find step by id
       const nextIdx = steps.findIndex(s => s.id === nextId);
       if (nextIdx !== -1) {
         setStepIndex(nextIdx);
@@ -124,40 +118,55 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
       }
     }
 
-    // Move to next step
-    const nextIndex = stepIndex + 1;
-    if (nextIndex < steps.length) {
-      // Check if next step's condition is met
-      const nextStep = steps[nextIndex];
-      if (nextStep.condition && !nextStep.condition(newCtx)) {
-        // Skip this step, try the one after
-        const skipIdx = steps.findIndex((s, i) => i > nextIndex && (!s.condition || s.condition(newCtx)));
-        if (skipIdx !== -1) {
-          setStepIndex(skipIdx);
-        } else {
-          finishQualification(newCtx);
-        }
-      } else {
-        setStepIndex(nextIndex);
+    // Otherwise, find next valid step
+    for (let i = stepIndex + 1; i < steps.length; i++) {
+      if (!steps[i].condition || steps[i].condition!(newCtx)) {
+        setStepIndex(i);
+        return;
       }
-    } else {
-      finishQualification(newCtx);
     }
+    finishQualification(newCtx);
+  };
+
+  // Map step IDs to context fields (some steps map to different field names)
+  const mapStepToCtx = (stepId: string, value: string | string[]): Partial<QualificationContext> => {
+    switch (stepId) {
+      case 'secteur_workwear': return { secteur: value as string };
+      case 'usage_lifestyle': return { usage: value as string };
+      case 'metier_restauration':
+      case 'metier_btp':
+      case 'metier_industrie': return { metier: value as string };
+      case 'categorie_accessoire': return { categorie_accessoire: value as string };
+      default: return { [stepId]: value };
+    }
+  };
+
+  // Handle single choice
+  const handleChoice = (step: QualificationStep, option: { value: string; label: string; alerte?: string }) => {
+    if (option.alerte) {
+      setAlerteVisible(option.alerte);
+      setTimeout(() => setAlerteVisible(null), 3000);
+    }
+
+    setMessages(prev => [...prev, { role: 'user', content: option.label }]);
+
+    const mapped = mapStepToCtx(step.id, option.value);
+    const newCtx = { ...qualifCtx, ...mapped };
+    setQualifCtx(newCtx);
+
+    goToNext(step, option.value, newCtx);
   };
 
   // Handle multi-select confirm
   const handleMultiConfirm = (step: QualificationStep) => {
     setMessages(prev => [...prev, { role: 'user', content: multiSelection.join(', ') }]);
-    const newCtx = { ...qualifCtx, [step.id]: multiSelection };
+
+    const mapped = mapStepToCtx(step.id, multiSelection);
+    const newCtx = { ...qualifCtx, ...mapped };
     setQualifCtx(newCtx);
     setMultiSelection([]);
 
-    const nextIndex = stepIndex + 1;
-    if (nextIndex < steps.length) {
-      setStepIndex(nextIndex);
-    } else {
-      finishQualification(newCtx);
-    }
+    goToNext(step, multiSelection, newCtx);
   };
 
   // Finish qualification → send to Claude
@@ -167,9 +176,11 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
     setMessages(prev => [...prev, { role: 'assistant', content: `Parfait, voici votre profil :\n\n${summary}\n\nJe prépare votre sélection...` }]);
 
     const promptCtx = qualificationToPromptContext(ctx as QualificationContext);
-    const pieces = context?.typologies?.join(', ') || 'textile pro';
+    const pieces = ctx.typologies?.join(', ') || context?.typologies?.join(', ') || 'textile pro';
     const nbPers = context?.nb_personnes ? `${context.nb_personnes} personnes` : '';
-    const prompt = `Critères : ${pieces}. ${Object.values(ctx).filter(v => v && typeof v === 'string').join('. ')}. ${nbPers}. Propose directement un mix chiffré.`;
+    const marquage = ctx.marquage && ctx.marquage !== 'neutre' ? `Marquage : ${ctx.marquage}.` : 'Sans marquage.';
+    const qualite = ctx.budget_qualite ? `Gamme : ${ctx.budget_qualite}.` : '';
+    const prompt = `Pièces : ${pieces}. ${marquage} ${qualite} ${nbPers}. Propose directement un mix chiffré.`;
 
     sendToAssistant(prompt, { ...context, ...promptCtx, metier: ctx.metier });
   };
