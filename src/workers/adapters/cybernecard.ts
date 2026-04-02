@@ -125,6 +125,7 @@ export const CyberneCardAdapter: SupplierAdapter = {
       stock_bas: stockBas,
       variantes: extractVariantes(raw),
       marquage_dispo: extractMarquageDispo(raw),
+      meta: parseDescriptionMeta(raw.descriptionArticleCatalogue || '', nomProduit),
     };
   },
 
@@ -227,11 +228,137 @@ function computePremium(raw: RawProduct): number {
   return score;
 }
 
+// ─── Parsing structuré de la description ────────────────────────────────────
+
+function parseDescriptionMeta(description: string, nomProduit: string): Record<string, any> {
+  const lines = description.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const lower = description.toLowerCase();
+  const nomLower = nomProduit.toLowerCase();
+
+  // Col
+  let col: string | null = null;
+  const colMatch = lower.match(/col\s+(rond|v|boutonné|montant|cheminé|polo|mao|officier)/);
+  if (colMatch) col = colMatch[1];
+
+  // Capuche
+  const capuche = lower.includes('capuche');
+
+  // Coupe
+  let coupe: string | null = null;
+  const coupeMatch = lower.match(/coupe\s+(cintrée|droite|ajustée|ample|oversize|regular|slim|loose)/);
+  if (coupeMatch) coupe = coupeMatch[1];
+
+  // Fermeture
+  let fermeture: string | null = null;
+  if (lower.includes('full zip') || lower.includes('zip intégral') || lower.includes('zip integral'))
+    fermeture = 'full zip';
+  else if (lower.includes('quart zip') || lower.includes('1/4 zip') || lower.includes('quarter zip'))
+    fermeture = 'quart zip';
+  else if (lower.includes('demi zip') || lower.includes('1/2 zip') || lower.includes('half zip'))
+    fermeture = 'demi zip';
+  else if (/fermeture.*bouton|boutonné/i.test(lower))
+    fermeture = 'boutonné';
+
+  // Maille
+  let maille: string | null = null;
+  const mailleKeywords: [string, string][] = [
+    ['molletonné', 'molletonné'],
+    ['molletonnée', 'molletonné'],
+    ['piqué', 'piqué'],
+    ['jersey', 'jersey'],
+    ['interlock', 'interlock'],
+    ['polaire', 'polaire'],
+    ['micro-polaire', 'micro-polaire'],
+    ['micropolaire', 'micro-polaire'],
+    ['nid d\'abeille', 'nid d\'abeille'],
+    ['mesh', 'mesh'],
+    ['éponge', 'éponge'],
+  ];
+  for (const [kw, label] of mailleKeywords) {
+    if (lower.includes(kw)) { maille = label; break; }
+  }
+
+  // Composition — look for lines matching "XX% matière"
+  let composition: string | null = null;
+  for (const line of lines) {
+    if (/\d+\s*%\s*[a-zéèêëàâùûîïôöüçæœ]+/i.test(line) && !/lavable/i.test(line)) {
+      composition = line;
+      break;
+    }
+  }
+
+  // Lavage max
+  let lavage_max: number | null = null;
+  const lavageMatch = lower.match(/(?:lavable\s+[àa]\s+)?(\d+)\s*°\s*c/);
+  if (lavageMatch) lavage_max = parseInt(lavageMatch[1]);
+
+  // Poches
+  let poches: string | null = null;
+  for (const line of lines) {
+    if (/poche/i.test(line)) { poches = line; break; }
+  }
+
+  // Coutures
+  let coutures: string | null = null;
+  for (const line of lines) {
+    if (/double couture|surpiq[uû]re/i.test(line)) { coutures = line; break; }
+  }
+
+  // Genre (from product name)
+  let genre_structure: string | null = null;
+  if (/\bhomme\b/i.test(nomLower)) genre_structure = 'Homme';
+  else if (/\bfemme\b/i.test(nomLower)) genre_structure = 'Femme';
+  else if (/\bunisexe\b|\bmixte\b/i.test(nomLower)) genre_structure = 'Unisexe';
+  else if (/\benfant\b|\bjunior\b|\bkid/i.test(nomLower)) genre_structure = 'Enfant';
+
+  // Arguments de vente — first line if it's descriptive (not the product name)
+  let arguments_vente: string | null = null;
+  if (lines.length > 0) {
+    const firstLine = lines[0];
+    // Skip if first line looks like composition or is too short
+    if (firstLine.length > 10 && !/^\d+\s*%/.test(firstLine) && !/^\d+\s*gr/.test(firstLine)) {
+      arguments_vente = firstLine;
+    }
+  }
+
+  return {
+    col,
+    capuche,
+    coupe,
+    fermeture,
+    maille,
+    composition,
+    lavage_max,
+    poches,
+    coutures,
+    genre_structure,
+    arguments_vente,
+  };
+}
+
 // ─── Extraction variantes (tailles/couleurs) ────────────────────────────────
 
 function extractVariantes(raw: RawProduct): Variante[] {
-  // Cybernecard Hydra API: déclinaisons imbriquées dans l'article
-  // Champs possibles : declinaisons, variantes, skus,ArticleDeclinaisons
+  // Priorité 1 : serials — contient stock exact par taille/couleur
+  const serials = raw.serials || raw.Serials || [];
+  if (Array.isArray(serials) && serials.length > 0) {
+    const variantes: Variante[] = [];
+    for (const s of serials) {
+      const couleur = s.couleur || s.color || s.libelleCouleur || '';
+      const taille = s.taille || s.size || s.libelleTaille || '';
+      const sku = s.serialNumber || s.serial || s.sku || s.code || '';
+      const photo = s.photo || s.image || '';
+      const stockQty = s.stock ?? s.quantite ?? s.qty ?? null;
+      const stock = typeof stockQty === 'number' ? stockQty > 0 : null;
+
+      if (!couleur && !taille && !sku) continue;
+
+      variantes.push({ sku, couleur, taille, stock, ean: s.ean || s.ean13 || '' });
+    }
+    if (variantes.length > 0) return variantes;
+  }
+
+  // Fallback : déclinaisons imbriquées dans l'article
   const declinaisons = raw.declinaisons
     || raw.variantes
     || raw.skus
@@ -281,8 +408,6 @@ function extractVariantes(raw: RawProduct): Variante[] {
       else if (typeof rawStock === 'string') stock = rawStock.toLowerCase() !== '0' && rawStock.toLowerCase() !== 'false';
     }
 
-    // On garde la variante même si certains champs sont vides
-    // mais on skip si ni couleur ni taille (pas une vraie variante)
     if (!couleur && !taille && !sku) continue;
 
     variantes.push({ sku, couleur, taille, stock, ean });

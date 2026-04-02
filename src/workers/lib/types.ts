@@ -23,6 +23,7 @@ export interface NormalizedProduct {
   couleurs?: { nom: string; hexa: string; image?: string }[];
   variantes?: Variante[];
   marquage_dispo?: string[];
+  meta?: Record<string, any>;
   actif?: boolean;
 }
 

@@ -44,6 +44,12 @@ const fr = (field: any): string => {
   return field.fr || field.en || '';
 };
 
+/** Like fr() but returns null instead of '' for missing/empty values */
+const frOrNull = (field: any): string | null => {
+  const val = fr(field);
+  return val || null;
+};
+
 function mapCategorie(family: string, subFamily: string): string {
   const sub = subFamily.toLowerCase();
   const fam = family.toLowerCase();
@@ -266,6 +272,21 @@ export const ToptexAdapter: SupplierAdapter = {
       couleurs: extractColors(raw.colors),
       variantes: variantes.length > 0 ? variantes : undefined,
       marquage_dispo: marquage.length > 0 ? marquage : undefined,
+      meta: {
+        col: frOrNull(raw.neckType),
+        capuche: fr(raw.hood) === 'Oui',
+        coupe: frOrNull(raw.fit),
+        sous_type: frOrNull(raw.style),
+        composition: frOrNull(raw.composition),
+        activites: Array.isArray(raw.activity)
+          ? raw.activity.map((a: any) => fr(a)).filter(Boolean)
+          : [],
+        maille: frOrNull(raw.typeWeaving),
+        fermeture: frOrNull(raw.typeFastening),
+        impermeabilite: frOrNull(raw.waterproof),
+        genre_structure: frOrNull(raw.gender),
+        arguments_vente: frOrNull(raw.salesArguments),
+      },
       // actif n'est pas inclus — le sync engine fait un upsert
       // et on ne veut pas écraser le statut actif/exclu existant
     };
