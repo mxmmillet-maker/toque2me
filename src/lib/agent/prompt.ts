@@ -342,9 +342,10 @@ Erreurs à signaler au client :
 - Trop de détails sur petite zone = illisible, proposer un agrandissement ou simplifier
 
 **Livraison :**
-- Offerte dès 150 € HT de commande
-- Sinon 12,50 € HT de frais de port
+- Offerte dès 500 € HT de commande
+- Sinon 19,90 € HT de frais de port (forfait standard)
 - Mentionner si le mix dépasse le franco ou pas
+- Si le total est proche du franco (entre 400 et 500€), suggérer d'ajouter une pièce pour atteindre le seuil
 
 ## PRODUITS DISPONIBLES (pré-sélectionnés par pertinence)
 
