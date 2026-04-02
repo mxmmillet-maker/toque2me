@@ -1,5 +1,6 @@
 // qualification-steps.ts
-// Flow de qualification v3 — Univers > Usage > Pièces > Style > Équipe > Couleur > Marquage > Délai > Budget
+// Flow de qualification v4 — vendeur en boutique
+// 1. Occasion → 2. Idée ou guidé → 3. Pièces → 4. Style+couleur PAR PIÈCE → 5. Coupe → 6. Marquage → Récap
 
 // ─────────────────────────────────────────────
 // TYPES
@@ -17,494 +18,385 @@ export interface QualificationStep {
   id: string;
   question: string;
   sous_titre?: string;
-  type: 'single' | 'multi';
+  type: 'single' | 'multi' | 'brief'; // brief = textarea libre
   options: StepOption[];
   condition?: (ctx: Partial<QualificationContext>) => boolean;
   next?: (value: string | string[], ctx: Partial<QualificationContext>) => string | null;
-  // Pré-sélection automatique d'options selon le contexte
   preselect?: (ctx: Partial<QualificationContext>) => string[];
 }
 
+export interface PieceConfig {
+  typology: string;    // 'T-shirts', 'Polos', etc.
+  style?: string;      // 'casual', 'chic', 'sportswear', 'classique'
+  couleurs?: string[]; // ['noir', 'marine', ...]
+}
+
 export interface QualificationContext {
-  univers: string;              // 'lifestyle' | 'workwear' | 'accessoires'
-  usage?: string;               // lifestyle: 'communication' | 'quotidien' | 'evenement'
-  secteur?: string;             // workwear: 'restauration' | 'btp' | 'industrie' | 'sante' | 'nettoyage' | 'securite' | 'espaces_verts'
-  metier?: string;              // sous-métier workwear
-  categorie_accessoire?: string;// accessoires: 'hightech' | 'ecriture' | 'boisson' | 'autre'
-  typologies?: string[];        // pièces sélectionnées
-  style?: string;               // lifestyle only: 'casual' | 'chic' | 'sportswear' | 'classique'
-  repartition_hf?: string;      // 'homme' | 'femme' | 'mixte'
-  produits_genres?: string;     // si mixte/femme: 'unisexe' | 'genres'
-  couleur?: string[];
-  marquage?: string;            // 'broderie' | 'serigraphie' | 'dtf' | 'neutre'
-  delai?: string;
-  budget_qualite?: string;      // 'essentiel' | 'milieu' | 'premium'
-  // Compat avec l'ancien système
+  // Flow vendeur
+  occasion?: string;          // 'evenement' | 'quotidien' | 'communication' | 'cadeau' | 'workwear'
+  approche?: string;          // 'idee' | 'guide'
+  brief_text?: string;        // texte libre si approche=idee
+  typologies?: string[];      // pièces sélectionnées
+  pieces_config?: PieceConfig[]; // config par pièce (style + couleur)
+  coupe?: string;             // 'homme' | 'femme' | 'unisexe' | 'mixte'
+  marquage?: string;          // 'broderie' | 'serigraphie' | 'dtf' | 'neutre' | 'conseil'
+
+  // Workwear spécifique
+  secteur?: string;
+  metier?: string;
+
+  // Compat scoring
+  style?: string;             // style global (dérivé de la première pièce ou le plus fréquent)
+  repartition_hf?: string;    // mappé depuis coupe
+  usage?: string;             // mappé depuis occasion
+  couleur?: string[];         // toutes les couleurs sélectionnées (union)
+
+  // Ancien système (compat)
+  univers?: string;
+  budget_qualite?: string;
   a_budget?: boolean;
   budget_tranche?: string;
   budget_global?: number;
   nb_personnes?: string;
   environnement?: string;
+  categorie_accessoire?: string;
+  produits_genres?: string;
+  delai?: string;
 }
 
 // ─────────────────────────────────────────────
-// PIÈCES SUGGÉRÉES PAR CONTEXTE
+// PIÈCES SUGGÉRÉES PAR OCCASION
 // ─────────────────────────────────────────────
 
-const TYPOLOGIES_MAP: Record<string, Record<string, string[]>> = {
-  lifestyle: {
-    communication:  ['T-shirts', 'Sweats', 'Casquettes / Bonnets'],
-    quotidien:      ['Polos', 'Chemises', 'Pantalons', 'Sweats'],
-    evenement:      ['T-shirts', 'Sweats', 'Vestes', 'Casquettes / Bonnets'],
-  },
-  workwear: {
-    restauration:   ['Vestes', 'Pantalons', 'Tabliers', 'T-shirts'],
-    btp:            ['T-shirts', 'Pantalons', 'Vestes', 'Sweats'],
-    industrie:      ['T-shirts', 'Pantalons', 'Vestes', 'Sweats'],
-    sante:          ['T-shirts', 'Pantalons', 'Vestes'],
-    nettoyage:      ['T-shirts', 'Pantalons', 'Tabliers'],
-    securite:       ['Polos', 'Pantalons', 'Vestes'],
-    espaces_verts:  ['T-shirts', 'Pantalons', 'Vestes', 'Sweats'],
-  },
+const PIECES_PAR_OCCASION: Record<string, string[]> = {
+  evenement:      ['T-shirts', 'Sweats', 'Accessoires'],
+  quotidien:      ['Polos', 'Pantalons', 'Sweats'],
+  communication:  ['T-shirts', 'Sweats', 'Accessoires'],
+  cadeau:         ['Sweats', 'Vestes', 'Accessoires'],
+  workwear:       ['T-shirts', 'Pantalons', 'Vestes'],
 };
 
-// Options typologies selon le contexte
-const TYPO_OPTIONS_LIFESTYLE: StepOption[] = [
+// ─────────────────────────────────────────────
+// OPTIONS TYPOLOGIES PAR CONTEXTE
+// ─────────────────────────────────────────────
+
+const TYPO_OPTIONS_DEFAULT: StepOption[] = [
   { value: 'T-shirts',    label: 'T-shirts',             emoji: '👕' },
   { value: 'Polos',       label: 'Polos',                emoji: '👔' },
   { value: 'Chemises',    label: 'Chemises',             emoji: '🪢' },
   { value: 'Sweats',      label: 'Sweats / Hoodies',     emoji: '🧶' },
-  { value: 'Vestes',      label: 'Vestes / Manteaux',    emoji: '🧥' },
+  { value: 'Vestes',      label: 'Vestes',               emoji: '🧥' },
   { value: 'Pantalons',   label: 'Pantalons',            emoji: '👖' },
+  { value: 'Tabliers',    label: 'Tabliers',             emoji: '🍳' },
   { value: 'Accessoires', label: 'Casquettes / Bonnets', emoji: '🧢' },
 ];
 
 const TYPO_OPTIONS_WORKWEAR: Record<string, StepOption[]> = {
   restauration: [
-    { value: 'Vestes',     label: 'Vestes de cuisine',  emoji: '👨‍🍳' },
+    { value: 'Vestes',     label: 'Vestes de cuisine',    emoji: '👨‍🍳' },
     { value: 'Pantalons',  label: 'Pantalons de cuisine', emoji: '👖' },
-    { value: 'Tabliers',   label: 'Tabliers',           emoji: '🍳' },
-    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
-    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
-    { value: 'Accessoires',label: 'Toques / Calots',    emoji: '🧑‍🍳' },
+    { value: 'Tabliers',   label: 'Tabliers',             emoji: '🍳' },
+    { value: 'T-shirts',   label: 'T-shirts',             emoji: '👕' },
+    { value: 'Polos',      label: 'Polos',                emoji: '👔' },
   ],
   btp: [
-    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
-    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+    { value: 'T-shirts',   label: 'T-shirts',             emoji: '👕' },
     { value: 'Pantalons',  label: 'Pantalons de travail', emoji: '👖' },
-    { value: 'Vestes',     label: 'Vestes / Softshells', emoji: '🧥' },
-    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
-    { value: 'Accessoires',label: 'Casques / Bonnets',  emoji: '⛑️' },
+    { value: 'Vestes',     label: 'Vestes / Softshells',  emoji: '🧥' },
+    { value: 'Sweats',     label: 'Sweats / Polaires',    emoji: '🧶' },
   ],
   industrie: [
-    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
-    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
+    { value: 'T-shirts',   label: 'T-shirts',             emoji: '👕' },
     { value: 'Pantalons',  label: 'Pantalons de travail', emoji: '👖' },
-    { value: 'Vestes',     label: 'Vestes / Blouses',   emoji: '🧥' },
-    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
+    { value: 'Vestes',     label: 'Vestes / Blouses',     emoji: '🧥' },
+    { value: 'Sweats',     label: 'Sweats / Polaires',    emoji: '🧶' },
   ],
   sante: [
-    { value: 'T-shirts',   label: 'Tuniques / T-shirts', emoji: '👕' },
-    { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
-    { value: 'Vestes',     label: 'Blouses',            emoji: '🥼' },
-  ],
-  nettoyage: [
-    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
-    { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
-    { value: 'Tabliers',   label: 'Tabliers',           emoji: '🧹' },
-    { value: 'Vestes',     label: 'Vestes',             emoji: '🧥' },
-  ],
-  securite: [
-    { value: 'Polos',      label: 'Polos',              emoji: '👔' },
-    { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
-    { value: 'Vestes',     label: 'Vestes',             emoji: '🧥' },
-    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
-  ],
-  espaces_verts: [
-    { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
-    { value: 'Pantalons',  label: 'Pantalons de travail', emoji: '👖' },
-    { value: 'Vestes',     label: 'Vestes / Parkas',    emoji: '🧥' },
-    { value: 'Sweats',     label: 'Sweats / Polaires',  emoji: '🧶' },
+    { value: 'T-shirts',   label: 'Tuniques / T-shirts',  emoji: '👕' },
+    { value: 'Pantalons',  label: 'Pantalons',            emoji: '👖' },
+    { value: 'Vestes',     label: 'Blouses',              emoji: '🥼' },
   ],
 };
 
-// Fallback workwear générique
-const TYPO_OPTIONS_WORKWEAR_DEFAULT: StepOption[] = [
-  { value: 'T-shirts',   label: 'T-shirts',           emoji: '👕' },
-  { value: 'Polos',      label: 'Polos',              emoji: '👔' },
-  { value: 'Pantalons',  label: 'Pantalons',          emoji: '👖' },
-  { value: 'Vestes',     label: 'Vestes',             emoji: '🧥' },
-  { value: 'Sweats',     label: 'Sweats',             emoji: '🧶' },
-  { value: 'Tabliers',   label: 'Tabliers',           emoji: '🍳' },
+export function getTypologyOptions(ctx: Partial<QualificationContext>): StepOption[] {
+  if (ctx.occasion === 'workwear' && ctx.secteur) {
+    return TYPO_OPTIONS_WORKWEAR[ctx.secteur] || TYPO_OPTIONS_DEFAULT;
+  }
+  return TYPO_OPTIONS_DEFAULT;
+}
+
+// ─────────────────────────────────────────────
+// COULEURS TENDANCE
+// ─────────────────────────────────────────────
+
+const COULEUR_OPTIONS: StepOption[] = [
+  { value: 'noir',       label: 'Noir',         emoji: '⚫' },
+  { value: 'marine',     label: 'Marine',       emoji: '🔵' },
+  { value: 'blanc',      label: 'Blanc',        emoji: '⚪' },
+  { value: 'gris',       label: 'Gris chiné',   emoji: '🩶' },
+  { value: 'beige',      label: 'Beige',        emoji: '🟡' },
+  { value: 'terracotta', label: 'Terracotta',   emoji: '🟠' },
+  { value: 'bordeaux',   label: 'Bordeaux',     emoji: '🟤' },
+  { value: 'vert_sapin', label: 'Vert sapin',   emoji: '🟢' },
+  { value: 'rouge',      label: 'Rouge',        emoji: '🔴' },
+  { value: 'bleu_ciel',  label: 'Bleu ciel',    emoji: '💙' },
+  { value: 'marque',     label: 'Couleurs de ma marque', emoji: '🎨' },
 ];
 
-export function getTypologyOptions(ctx: Partial<QualificationContext>): StepOption[] {
-  if (ctx.univers === 'lifestyle') return TYPO_OPTIONS_LIFESTYLE;
-  if (ctx.univers === 'workwear' && ctx.secteur) {
-    return TYPO_OPTIONS_WORKWEAR[ctx.secteur] || TYPO_OPTIONS_WORKWEAR_DEFAULT;
-  }
-  return TYPO_OPTIONS_WORKWEAR_DEFAULT;
-}
-
-function getSuggestedTypologies(ctx: Partial<QualificationContext>): string[] {
-  if (ctx.univers === 'lifestyle' && ctx.usage) {
-    return TYPOLOGIES_MAP.lifestyle[ctx.usage] || [];
-  }
-  if (ctx.univers === 'workwear' && ctx.secteur) {
-    return TYPOLOGIES_MAP.workwear[ctx.secteur] || [];
-  }
-  return [];
-}
+const STYLE_OPTIONS: StepOption[] = [
+  { value: 'casual',      label: 'Casual / Décontracté', emoji: '👕' },
+  { value: 'chic',        label: 'Chic / Élégant',       emoji: '✨' },
+  { value: 'sportswear',  label: 'Sportswear',           emoji: '⚽' },
+  { value: 'classique',   label: 'Classique / Pro',      emoji: '👔' },
+];
 
 // ─────────────────────────────────────────────
-// STEPS
+// STEPS STATIQUES (avant la boucle par pièce)
 // ─────────────────────────────────────────────
 
-export const QUALIFICATION_STEPS: QualificationStep[] = [
+export const STATIC_STEPS: QualificationStep[] = [
 
-  // ── 1. UNIVERS ────────────────────────────────────────────────────────────
-
-  {
-    id: 'univers',
-    question: 'Que recherchez-vous ?',
-    type: 'single',
-    options: [
-      { value: 'lifestyle',    label: 'Textile',         emoji: '👕', sub: 'T-shirts, polos, sweats, vestes...' },
-      { value: 'workwear',     label: 'Vêtement pro',    emoji: '🦺', sub: 'Cuisine, BTP, industrie, santé...' },
-      { value: 'accessoires',  label: 'Objets & Goodies',emoji: '🎁', sub: 'Hightech, stylos, mugs, sacs...' },
-    ],
-    next: (value) => {
-      if (value === 'lifestyle') return 'usage_lifestyle';
-      if (value === 'workwear') return 'secteur_workwear';
-      if (value === 'accessoires') return 'categorie_accessoire';
-      return null;
-    },
-  },
-
-  // ── 2a. USAGE LIFESTYLE ───────────────────────────────────────────────────
+  // ── 1. OCCASION ───────────────────────────────────────────────────────────
 
   {
-    id: 'usage_lifestyle',
-    question: 'C\'est pour quel usage ?',
+    id: 'occasion',
+    question: 'Bonjour ! C\'est pour quelle occasion ?',
     type: 'single',
-    condition: (ctx) => ctx.univers === 'lifestyle',
     options: [
-      { value: 'communication', label: 'Communication',       emoji: '📣', sub: 'Visibilité, goodies, cadeaux clients' },
-      { value: 'quotidien',     label: 'Travail quotidien',   emoji: '💼', sub: 'Porté tous les jours par vos équipes' },
-      { value: 'evenement',     label: 'Événement',           emoji: '🎉', sub: 'Salon, séminaire, team building' },
+      { value: 'evenement',     label: 'Un événement',         emoji: '🎉', sub: 'Salon, séminaire, soirée, team building' },
+      { value: 'quotidien',     label: 'Le quotidien pro',     emoji: '💼', sub: 'Tenue d\'équipe, vêtement de travail' },
+      { value: 'communication', label: 'De la communication',  emoji: '📣', sub: 'Goodies, cadeaux clients, visibilité' },
+      { value: 'cadeau',        label: 'Un cadeau',            emoji: '🎁', sub: 'Welcome pack, fin d\'année, remerciement' },
+      { value: 'workwear',      label: 'Du vêtement pro / EPI',emoji: '🦺', sub: 'Cuisine, BTP, industrie, santé' },
     ],
-    next: () => 'typologies',
+    next: (value) => value === 'workwear' ? 'secteur' : 'approche',
   },
 
-  // ── 2b. SECTEUR WORKWEAR ──────────────────────────────────────────────────
+  // ── 1bis. SECTEUR (workwear) ──────────────────────────────────────────────
 
   {
-    id: 'secteur_workwear',
-    question: 'Dans quelle industrie ?',
+    id: 'secteur',
+    question: 'Dans quel secteur ?',
     type: 'single',
-    condition: (ctx) => ctx.univers === 'workwear',
+    condition: (ctx) => ctx.occasion === 'workwear',
     options: [
-      { value: 'restauration',  label: 'Restauration',        emoji: '🍳', sub: 'Cuisine, service, boulangerie' },
-      { value: 'btp',           label: 'BTP / Construction',   emoji: '🏗️', sub: 'Chantier, rénovation, TP' },
-      { value: 'industrie',     label: 'Industrie',            emoji: '🏭', sub: 'Production, logistique, entrepôt' },
-      { value: 'sante',         label: 'Santé / Médical',      emoji: '🏥', sub: 'Hôpital, labo, pharmacie' },
-      { value: 'nettoyage',     label: 'Nettoyage / Propreté', emoji: '🧹', sub: 'Entretien, hygiène' },
-      { value: 'securite',      label: 'Sécurité / Gardiennage', emoji: '🛡️' },
-      { value: 'espaces_verts', label: 'Espaces verts',        emoji: '🌿', sub: 'Paysagisme, entretien' },
+      { value: 'restauration',  label: 'Restauration',          emoji: '🍳' },
+      { value: 'btp',           label: 'BTP / Construction',     emoji: '🏗️' },
+      { value: 'industrie',     label: 'Industrie',              emoji: '🏭' },
+      { value: 'sante',         label: 'Santé / Médical',        emoji: '🏥' },
+      { value: 'nettoyage',     label: 'Nettoyage / Propreté',   emoji: '🧹' },
+      { value: 'securite',      label: 'Sécurité',               emoji: '🛡️' },
+      { value: 'espaces_verts', label: 'Espaces verts',          emoji: '🌿' },
     ],
-    next: (value) => {
-      if (value === 'restauration') return 'metier_restauration';
-      if (value === 'btp') return 'metier_btp';
-      if (value === 'industrie') return 'metier_industrie';
-      return 'typologies';
-    },
   },
 
-  // ── 2b-i. MÉTIER RESTAURATION ─────────────────────────────────────────────
+  // ── 2. APPROCHE ───────────────────────────────────────────────────────────
 
   {
-    id: 'metier_restauration',
-    question: 'Quel poste ?',
+    id: 'approche',
+    question: 'Vous avez déjà une idée de ce qu\'il vous faut ?',
     type: 'single',
-    condition: (ctx) => ctx.secteur === 'restauration',
     options: [
-      { value: 'chef_cuisine',  label: 'Chef / Cuisinier',    emoji: '👨‍🍳', sub: 'Veste, pantalon, tablier, toque' },
-      { value: 'serveur',       label: 'Serveur / Salle',     emoji: '🍽️', sub: 'Polo, chemise, tablier' },
-      { value: 'boulanger',     label: 'Boulanger / Pâtissier', emoji: '🥖', sub: 'Veste, tablier, calot' },
-      { value: 'boucher',       label: 'Boucher',             emoji: '🥩', sub: 'Tablier, gants anti-coupures', alerte: 'EN 388 niv.5 gants obligatoire' },
-      { value: 'mixte_resto',   label: 'Plusieurs postes',    emoji: '🔄' },
+      { value: 'idee',  label: 'Oui, j\'ai une idée',    emoji: '💡', sub: 'Décrivez votre besoin' },
+      { value: 'guide', label: 'Non, guidez-moi',         emoji: '🧭', sub: 'On vous propose les meilleures options' },
     ],
-    next: () => 'typologies',
+    next: (value) => value === 'idee' ? 'brief' : 'typologies',
   },
 
-  // ── 2b-ii. MÉTIER BTP ─────────────────────────────────────────────────────
+  // ── 2bis. BRIEF LIBRE ─────────────────────────────────────────────────────
 
   {
-    id: 'metier_btp',
-    question: 'Quel(s) métier(s) ?',
-    type: 'single',
-    condition: (ctx) => ctx.secteur === 'btp',
-    options: [
-      { value: 'macon',             label: 'Maçon / Gros œuvre',     emoji: '🧱', sub: 'EN ISO 20345 S3' },
-      { value: 'electricien',       label: 'Électricien',             emoji: '⚡', sub: 'EN IEC 61482-2', alerte: 'Norme arc électrique — tissu spécifique requis' },
-      { value: 'peintre',           label: 'Peintre / Façadier',      emoji: '🖌️', sub: 'EN 13034 Type 6' },
-      { value: 'plombier',          label: 'Plombier / Chauffagiste', emoji: '🔧' },
-      { value: 'conducteur_engins', label: 'Conducteur d\'engins',   emoji: '🚜', sub: 'Haute visibilité Cl.3', alerte: 'Haute visibilité classe 3 obligatoire' },
-      { value: 'mixte_btp',         label: 'Plusieurs métiers',       emoji: '👷' },
-    ],
-    next: () => 'typologies',
+    id: 'brief',
+    question: 'Décrivez votre besoin en quelques mots :',
+    sous_titre: 'Ex: "200 polos marine brodés pour un salon dans 3 semaines"',
+    type: 'brief',
+    options: [], // pas d'options, c'est un textarea
+    condition: (ctx) => ctx.approche === 'idee',
+    next: () => null, // fin du flow → extraction par l'IA
   },
 
-  // ── 2b-iii. MÉTIER INDUSTRIE ──────────────────────────────────────────────
-
-  {
-    id: 'metier_industrie',
-    question: 'Quel poste ?',
-    type: 'single',
-    condition: (ctx) => ctx.secteur === 'industrie',
-    options: [
-      { value: 'operateur_chaine', label: 'Opérateur production', emoji: '🏭' },
-      { value: 'soudeur',          label: 'Soudeur',              emoji: '🔥', alerte: '100% coton ou FR — synthétique interdit' },
-      { value: 'logisticien',      label: 'Logisticien / Cariste', emoji: '📦', sub: 'EN ISO 20471 Cl.2' },
-      { value: 'chimiste',         label: 'Chimie / Labo',        emoji: '🧪' },
-      { value: 'mixte_industrie',  label: 'Plusieurs postes',     emoji: '🔄' },
-    ],
-    next: () => 'typologies',
-  },
-
-  // ── 2c. CATÉGORIE ACCESSOIRES ─────────────────────────────────────────────
-
-  {
-    id: 'categorie_accessoire',
-    question: 'Quel type d\'objet ?',
-    type: 'single',
-    condition: (ctx) => ctx.univers === 'accessoires',
-    options: [
-      { value: 'hightech',  label: 'Hightech',        emoji: '📱', sub: 'Clés USB, enceintes, chargeurs' },
-      { value: 'ecriture',  label: 'Écriture',        emoji: '🖊️', sub: 'Stylos, carnets, bloc-notes' },
-      { value: 'boisson',   label: 'Mugs & Gourdes',  emoji: '☕', sub: 'Mugs, gourdes, thermos' },
-      { value: 'bagagerie', label: 'Sacs & Bagagerie', emoji: '🎒', sub: 'Tote bags, sacs à dos, trousses' },
-      { value: 'autre',     label: 'Autre',            emoji: '🎁' },
-    ],
-    next: () => 'couleur', // accessoires → pas de pièces/style/genre, direct couleur
-  },
-
-  // ── 3. PIÈCES (options filtrées dynamiquement dans le composant via getTypologyOptions) ──
+  // ── 3. PIÈCES ─────────────────────────────────────────────────────────────
 
   {
     id: 'typologies',
-    question: 'On vous suggère ces pièces — ajustez si besoin :',
-    sous_titre: 'Sélectionnez ou désélectionnez selon vos besoins.',
+    question: 'Qu\'est-ce qui vous ferait plaisir ?',
+    sous_titre: 'Sélectionnez une ou plusieurs pièces.',
     type: 'multi',
-    options: [], // Rempli dynamiquement par getTypologyOptions()
-    preselect: getSuggestedTypologies,
-    condition: (ctx) => ctx.univers !== 'accessoires',
-    next: (_, ctx) => ctx.univers === 'lifestyle' ? 'style' : 'repartition_hf',
+    options: [], // rempli dynamiquement via getTypologyOptions()
+    preselect: (ctx) => PIECES_PAR_OCCASION[ctx.occasion || ''] || [],
+    condition: (ctx) => ctx.approche !== 'idee',
   },
 
-  // ── 4. STYLE (lifestyle uniquement) ───────────────────────────────────────
-
-  {
-    id: 'style',
-    question: 'Quel style ?',
-    type: 'single',
-    condition: (ctx) => ctx.univers === 'lifestyle',
-    options: [
-      { value: 'casual',      label: 'Casual',           emoji: '👕', sub: 'Confort, couleurs neutres ou vives' },
-      { value: 'chic',        label: 'Casual chic',      emoji: '✨', sub: 'Élégant mais accessible' },
-      { value: 'sportswear',  label: 'Sportswear',       emoji: '⚽', sub: 'Dynamique, matières techniques' },
-      { value: 'classique',   label: 'Classique / Pro',  emoji: '👔', sub: 'Sobre, marine/noir/gris' },
-    ],
-  },
-
-  // ── 5. ÉQUIPE ─────────────────────────────────────────────────────────────
-
-  {
-    id: 'repartition_hf',
-    question: 'Pour qui ?',
-    type: 'single',
-    condition: (ctx) => ctx.univers !== 'accessoires',
-    options: [
-      { value: 'homme',  label: 'Hommes',  emoji: '👨' },
-      { value: 'femme',  label: 'Femmes',  emoji: '👩' },
-      { value: 'mixte',  label: 'Mixte',   emoji: '👫' },
-    ],
-    next: (value) => (value === 'mixte' || value === 'femme') ? 'produits_genres' : 'couleur',
-  },
-
-  // ── 5bis. UNISEXE OU GENRÉ ────────────────────────────────────────────────
-
-  {
-    id: 'produits_genres',
-    question: 'Produits unisexe ou coupes genrées ?',
-    type: 'single',
-    condition: (ctx) => ctx.repartition_hf === 'mixte' || ctx.repartition_hf === 'femme',
-    options: [
-      { value: 'unisexe', label: 'Unisexe',          emoji: '🔄', sub: 'Même coupe pour tous' },
-      { value: 'genres',  label: 'Coupes H/F',       emoji: '👫', sub: 'Coupes ajustées homme et femme' },
-    ],
-  },
-
-  // ── 6. COULEUR ────────────────────────────────────────────────────────────
-
-  {
-    id: 'couleur',
-    question: 'Couleur(s) souhaitée(s) ?',
-    sous_titre: 'Plusieurs choix possibles.',
-    type: 'multi',
-    options: [
-      { value: 'noir',       label: 'Noir',             emoji: '⚫' },
-      { value: 'marine',     label: 'Marine',           emoji: '🔵' },
-      { value: 'blanc',      label: 'Blanc',            emoji: '⚪' },
-      { value: 'gris',       label: 'Gris chiné',       emoji: '🩶' },
-      { value: 'beige',      label: 'Beige / Sable',    emoji: '🟡' },
-      { value: 'terracotta', label: 'Terracotta',       emoji: '🟠' },
-      { value: 'bordeaux',   label: 'Bordeaux',         emoji: '🟤' },
-      { value: 'vert_sapin', label: 'Vert sapin',       emoji: '🟢' },
-      { value: 'rouge',      label: 'Rouge',            emoji: '🔴' },
-      { value: 'bleu_ciel',  label: 'Bleu ciel',        emoji: '💙' },
-      { value: 'marque',     label: 'Couleurs de ma marque', emoji: '🎨', sub: 'Précisez dans le chat' },
-    ],
-  },
-
-  // ── 7. MARQUAGE ───────────────────────────────────────────────────────────
-
-  {
-    id: 'marquage',
-    question: 'Marquage ou neutre ?',
-    sous_titre: 'On peut aussi vous conseiller dans le chat.',
-    type: 'single',
-    options: [
-      { value: 'broderie',     label: 'Broderie',        emoji: '🪡', sub: 'Premium, durable, logo discret' },
-      { value: 'serigraphie',  label: 'Sérigraphie',     emoji: '🖨️', sub: 'Gros volumes, couleurs vives' },
-      { value: 'dtf',          label: 'DTF / Transfert',  emoji: '🎨', sub: 'Photo, dégradés, petites séries' },
-      { value: 'neutre',       label: 'Sans marquage',    emoji: '✖️', sub: 'Textile brut' },
-      { value: 'conseil',      label: 'Conseillez-moi',   emoji: '💡' },
-    ],
-  },
-
-  // ── 8. DÉLAI ──────────────────────────────────────────────────────────────
-
-  {
-    id: 'delai',
-    question: 'Quel est votre délai ?',
-    type: 'single',
-    options: [
-      { value: 'urgent',   label: 'Urgent',     emoji: '⚡', sub: 'Moins d\'1 semaine' },
-      { value: 'standard', label: '2-3 semaines',emoji: '📅' },
-      { value: 'relax',    label: 'Pas pressé',  emoji: '🗓️', sub: '1 mois et plus' },
-    ],
-  },
-
-  // ── 9. BUDGET (par niveau de qualité) ─────────────────────────────────────
-
-  {
-    id: 'budget_qualite',
-    question: 'Quel niveau de qualité ?',
-    sous_titre: 'Influence le grammage, les finitions et les matières.',
-    type: 'single',
-    condition: (ctx) => ctx.univers !== 'accessoires',
-    options: [
-      { value: 'essentiel', label: 'Essentiel',         emoji: '💶', sub: '~5-15 €/pièce · Événements, gros volumes' },
-      { value: 'milieu',    label: 'Milieu de gamme',   emoji: '💰', sub: '~15-30 €/pièce · Usage régulier, bon rapport Q/P' },
-      { value: 'premium',   label: 'Premium',           emoji: '💎', sub: '~30-60 €/pièce · Image de marque, finitions haut de gamme' },
-    ],
-  },
+  // ── Les étapes 4 (style+couleur par pièce) sont générées dynamiquement ──
+  // ── Voir generatePieceSteps() ci-dessous ──────────────────────────────────
 
 ];
 
 // ─────────────────────────────────────────────
-// MAPPING BUDGET QUALITÉ → SCORING
+// STEPS APRÈS LA BOUCLE PAR PIÈCE
 // ─────────────────────────────────────────────
 
-export const BUDGET_QUALITE_MAP: Record<string, { min: number; max: number }> = {
-  essentiel: { min: 3, max: 15 },
-  milieu:    { min: 12, max: 35 },
-  premium:   { min: 25, max: 80 },
-};
+export const POST_PIECE_STEPS: QualificationStep[] = [
 
-// Compat ancien système
-export const BUDGET_TRANCHE_MAP: Record<string, number> = {
-  '0-200':     150,
-  '200-500':   350,
-  '500-1000':  750,
-  '1000-3000': 2000,
-  '3000+':     5000,
-};
+  // ── 5. COUPE ──────────────────────────────────────────────────────────────
+
+  {
+    id: 'coupe',
+    question: 'C\'est pour qui ?',
+    type: 'single',
+    options: [
+      { value: 'homme',   label: 'Hommes',   emoji: '👨' },
+      { value: 'femme',   label: 'Femmes',   emoji: '👩' },
+      { value: 'mixte',   label: 'Mixte',    emoji: '👫' },
+      { value: 'unisexe', label: 'Unisexe',  emoji: '🔄', sub: 'Même coupe pour tous' },
+    ],
+  },
+
+  // ── 6. MARQUAGE ───────────────────────────────────────────────────────────
+
+  {
+    id: 'marquage',
+    question: 'Vous souhaitez un marquage ?',
+    sous_titre: 'Logo, texte ou visuel sur les pièces.',
+    type: 'single',
+    options: [
+      { value: 'broderie',    label: 'Broderie',          emoji: '🪡', sub: 'Premium, durable' },
+      { value: 'serigraphie', label: 'Sérigraphie',       emoji: '🖨️', sub: 'Gros volumes, couleurs vives' },
+      { value: 'dtf',         label: 'DTF / Transfert',   emoji: '🎨', sub: 'Photo, dégradés' },
+      { value: 'neutre',      label: 'Sans marquage',     emoji: '✖️' },
+      { value: 'conseil',     label: 'Conseillez-moi',    emoji: '💡' },
+    ],
+  },
+];
 
 // ─────────────────────────────────────────────
-// FONCTIONS
+// GÉNÉRATION DYNAMIQUE DES ÉTAPES PAR PIÈCE
 // ─────────────────────────────────────────────
 
-/**
- * Retourne les steps dans l'ordre pour un contexte donné,
- * en filtrant les steps conditionnels
- */
-export function getStepsForContext(secteur?: string): QualificationStep[] {
-  // On ne filtre plus par secteur au départ — le flow est dynamique
-  return QUALIFICATION_STEPS;
+export function generatePieceSteps(typologies: string[]): QualificationStep[] {
+  const steps: QualificationStep[] = [];
+
+  for (const typo of typologies) {
+    // Style pour cette pièce
+    steps.push({
+      id: `style_${typo}`,
+      question: `${typo} — quel style ?`,
+      type: 'single',
+      options: STYLE_OPTIONS,
+    });
+
+    // Couleur pour cette pièce
+    steps.push({
+      id: `couleur_${typo}`,
+      question: `${typo} — quelle(s) couleur(s) ?`,
+      sous_titre: 'Plusieurs choix possibles.',
+      type: 'multi',
+      options: COULEUR_OPTIONS,
+    });
+  }
+
+  return steps;
 }
 
+// ─────────────────────────────────────────────
+// CONSTRUCTION DU FLOW COMPLET
+// ─────────────────────────────────────────────
+
 /**
- * Convertit le contexte de qualification en PromptContext partiel
+ * Retourne toutes les étapes dans l'ordre.
+ * Appelé à chaque changement de contexte pour régénérer les étapes dynamiques.
+ */
+export function buildSteps(ctx: Partial<QualificationContext>): QualificationStep[] {
+  const steps = [...STATIC_STEPS];
+
+  // Si des typologies sont sélectionnées, insérer les étapes par pièce
+  if (ctx.typologies && ctx.typologies.length > 0 && ctx.approche !== 'idee') {
+    steps.push(...generatePieceSteps(ctx.typologies));
+  }
+
+  // Ajouter les étapes post-pièce
+  steps.push(...POST_PIECE_STEPS);
+
+  return steps;
+}
+
+// ─────────────────────────────────────────────
+// COMPAT SCORING
+// ─────────────────────────────────────────────
+
+export const BUDGET_TRANCHE_MAP: Record<string, number> = {
+  '0-200': 150, '200-500': 350, '500-1000': 750, '1000-3000': 2000, '3000+': 5000,
+};
+
+const OCCASION_TO_USAGE: Record<string, string> = {
+  evenement: 'evenement',
+  quotidien: 'quotidien',
+  communication: 'image',
+  cadeau: 'image',
+  workwear: 'quotidien',
+};
+
+/**
+ * Convertit le contexte de qualification en PromptContext pour le scoring/prompt
  */
 export function qualificationToPromptContext(ctx: QualificationContext) {
+  // Dériver le style global depuis les pièces (le plus fréquent)
+  const styles = (ctx.pieces_config || []).map(p => p.style).filter(Boolean) as string[];
+  const styleCounts: Record<string, number> = {};
+  styles.forEach(s => { styleCounts[s] = (styleCounts[s] || 0) + 1; });
+  const globalStyle = Object.entries(styleCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+  // Union de toutes les couleurs
+  const allCouleurs = Array.from(new Set((ctx.pieces_config || []).flatMap(p => p.couleurs || [])));
+
+  // Mapper coupe vers repartition_hf
+  const repMap: Record<string, string> = { homme: '100h', femme: '100f', mixte: 'mixte', unisexe: 'mixte' };
+
   return {
     secteur: ctx.secteur,
     metier: ctx.metier,
     typologies: ctx.typologies,
-    style: ctx.style,
-    repartition_hf: ctx.repartition_hf === 'homme' ? '100h'
-      : ctx.repartition_hf === 'femme' ? '100f'
-      : 'mixte',
-    usage: ctx.usage || environnementToUsage(ctx.environnement),
-    budget_global: ctx.a_budget
-      ? (ctx.budget_global ?? BUDGET_TRANCHE_MAP[ctx.budget_tranche ?? ''] ?? undefined)
-      : undefined,
+    style: globalStyle || ctx.style,
+    repartition_hf: repMap[ctx.coupe || ''] || 'mixte',
+    usage: OCCASION_TO_USAGE[ctx.occasion || ''] || 'quotidien',
+    budget_global: ctx.budget_global ?? undefined,
   };
 }
 
-function environnementToUsage(env?: string): string | undefined {
-  const map: Record<string, string> = {
-    salle:     'image',
-    cuisine:   'quotidien',
-    bureau:    'image',
-    exterieur: 'quotidien',
-    mixte:     'quotidien',
-  };
-  return env ? map[env] : undefined;
+// Compat ancien système
+export function getStepsForContext(): QualificationStep[] {
+  return buildSteps({});
 }
 
 /**
- * Génère le résumé de qualification à afficher dans le chat
+ * Résumé de qualification pour le chat
  */
 export function buildQualificationSummary(ctx: QualificationContext): string {
   const labels: Record<string, string> = {
-    lifestyle: 'Textile lifestyle', workwear: 'Vêtement professionnel', accessoires: 'Objets & Goodies',
-    communication: 'Communication / Visibilité', quotidien: 'Travail quotidien', evenement: 'Événement',
-    essentiel: 'Essentiel (~5-15€/pce)', milieu: 'Milieu de gamme (~15-30€/pce)', premium: 'Premium (~30-60€/pce)',
-    homme: '100% Hommes', femme: '100% Femmes', mixte: 'Mixte',
-    unisexe: 'Coupes unisexe', genres: 'Coupes H/F séparées',
-    broderie: 'Broderie', serigraphie: 'Sérigraphie', dtf: 'DTF / Transfert', neutre: 'Sans marquage', conseil: 'À conseiller',
-    urgent: 'Urgent (<1 sem)', standard: '2-3 semaines', relax: 'Pas pressé',
+    evenement: 'Événement', quotidien: 'Quotidien pro', communication: 'Communication', cadeau: 'Cadeau', workwear: 'Vêtement pro',
+    homme: 'Hommes', femme: 'Femmes', mixte: 'Mixte', unisexe: 'Unisexe',
+    broderie: 'Broderie', serigraphie: 'Sérigraphie', dtf: 'DTF', neutre: 'Sans marquage', conseil: 'À conseiller',
   };
-
   const l = (key?: string) => key ? (labels[key] || key) : null;
 
   const lignes = [
-    `**Univers :** ${l(ctx.univers)}`,
-    ctx.usage ? `**Usage :** ${l(ctx.usage)}` : null,
+    `**Occasion :** ${l(ctx.occasion)}`,
     ctx.secteur ? `**Secteur :** ${ctx.secteur}` : null,
-    ctx.metier ? `**Métier :** ${ctx.metier}` : null,
     ctx.typologies?.length ? `**Pièces :** ${ctx.typologies.join(', ')}` : null,
-    ctx.style ? `**Style :** ${ctx.style}` : null,
-    ctx.repartition_hf ? `**Équipe :** ${l(ctx.repartition_hf)}` : null,
-    ctx.produits_genres ? `**Coupes :** ${l(ctx.produits_genres)}` : null,
-    ctx.couleur?.length ? `**Couleur(s) :** ${ctx.couleur.join(', ')}` : null,
-    ctx.marquage ? `**Marquage :** ${l(ctx.marquage)}` : null,
-    ctx.delai ? `**Délai :** ${l(ctx.delai)}` : null,
-    ctx.budget_qualite ? `**Qualité :** ${l(ctx.budget_qualite)}` : null,
-  ].filter(Boolean);
+  ];
 
-  return lignes.join('\n');
+  // Détail par pièce
+  if (ctx.pieces_config?.length) {
+    for (const pc of ctx.pieces_config) {
+      const parts = [pc.style, pc.couleurs?.join(', ')].filter(Boolean).join(' — ');
+      if (parts) lignes.push(`  → ${pc.typology} : ${parts}`);
+    }
+  }
+
+  lignes.push(
+    ctx.coupe ? `**Coupe :** ${l(ctx.coupe)}` : null,
+    ctx.marquage ? `**Marquage :** ${l(ctx.marquage)}` : null,
+  );
+
+  return lignes.filter(Boolean).join('\n');
 }

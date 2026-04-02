@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { MicButton } from './MicButton';
 import { ChatMarkdown } from './ChatMarkdown';
 import {
-  getStepsForContext,
+  buildSteps,
   qualificationToPromptContext,
   buildQualificationSummary,
   getTypologyOptions,
   type QualificationContext,
   type QualificationStep,
+  type PieceConfig,
 } from '@/lib/agent/qualification-steps';
 
 interface Message {
@@ -31,11 +32,12 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Qualification state
-  const steps = useMemo(() => getStepsForContext(), []);
+  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>({});
+  const steps = useMemo(() => buildSteps(qualifCtx), [qualifCtx]);
   const [stepIndex, setStepIndex] = useState(0);
   const [qualifDone, setQualifDone] = useState(false);
-  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>({});
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
+  const [briefText, setBriefText] = useState('');
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
 
   const questionRef = useRef<HTMLDivElement>(null);
@@ -119,16 +121,21 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
         finishQualification(newCtx);
         return;
       }
-      const nextIdx = steps.findIndex(s => s.id === nextId);
+      // Rebuild steps with new context to find dynamic steps
+      const newSteps = buildSteps(newCtx);
+      const nextIdx = newSteps.findIndex(s => s.id === nextId);
       if (nextIdx !== -1) {
         setStepIndex(nextIdx);
         return;
       }
     }
 
-    // Otherwise, find next valid step
-    for (let i = stepIndex + 1; i < steps.length; i++) {
-      if (!steps[i].condition || steps[i].condition!(newCtx)) {
+    // Rebuild steps to include any newly generated per-piece steps
+    const newSteps = buildSteps(newCtx);
+    const currentIdx = newSteps.findIndex(s => s.id === step.id);
+
+    for (let i = (currentIdx >= 0 ? currentIdx : stepIndex) + 1; i < newSteps.length; i++) {
+      if (!newSteps[i].condition || newSteps[i].condition!(newCtx)) {
         setStepIndex(i);
         return;
       }
@@ -136,17 +143,29 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
     finishQualification(newCtx);
   };
 
-  // Map step IDs to context fields (some steps map to different field names)
+  // Map step IDs to context fields
   const mapStepToCtx = (stepId: string, value: string | string[]): Partial<QualificationContext> => {
-    switch (stepId) {
-      case 'secteur_workwear': return { secteur: value as string };
-      case 'usage_lifestyle': return { usage: value as string };
-      case 'metier_restauration':
-      case 'metier_btp':
-      case 'metier_industrie': return { metier: value as string };
-      case 'categorie_accessoire': return { categorie_accessoire: value as string };
-      default: return { [stepId]: value };
+    // Étapes style par pièce : style_T-shirts, style_Polos, etc.
+    if (stepId.startsWith('style_')) {
+      const typo = stepId.replace('style_', '');
+      const existing = qualifCtx.pieces_config || [];
+      const pieceIdx = existing.findIndex(p => p.typology === typo);
+      const piece: PieceConfig = pieceIdx >= 0 ? { ...existing[pieceIdx], style: value as string } : { typology: typo, style: value as string };
+      const updated = pieceIdx >= 0 ? [...existing.slice(0, pieceIdx), piece, ...existing.slice(pieceIdx + 1)] : [...existing, piece];
+      return { pieces_config: updated };
     }
+
+    // Étapes couleur par pièce : couleur_T-shirts, couleur_Polos, etc.
+    if (stepId.startsWith('couleur_')) {
+      const typo = stepId.replace('couleur_', '');
+      const existing = qualifCtx.pieces_config || [];
+      const pieceIdx = existing.findIndex(p => p.typology === typo);
+      const piece: PieceConfig = pieceIdx >= 0 ? { ...existing[pieceIdx], couleurs: value as string[] } : { typology: typo, couleurs: value as string[] };
+      const updated = pieceIdx >= 0 ? [...existing.slice(0, pieceIdx), piece, ...existing.slice(pieceIdx + 1)] : [...existing, piece];
+      return { pieces_config: updated };
+    }
+
+    return { [stepId]: value };
   };
 
   // Handle single choice
@@ -184,11 +203,26 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
     setMessages(prev => [...prev, { role: 'assistant', content: `Parfait, voici votre profil :\n\n${summary}\n\nJe prépare votre sélection...` }]);
 
     const promptCtx = qualificationToPromptContext(ctx as QualificationContext);
-    const pieces = ctx.typologies?.join(', ') || context?.typologies?.join(', ') || 'textile pro';
     const nbPers = context?.nb_personnes ? `${context.nb_personnes} personnes` : '';
+
+    // Si brief libre, envoyer le brief directement
+    if (ctx.brief_text) {
+      const prompt = `Brief client : "${ctx.brief_text}". ${nbPers}. Analyse le besoin et propose directement un mix chiffré.`;
+      sendToAssistant(prompt, { ...context, ...promptCtx });
+      return;
+    }
+
+    // Sinon construire le prompt depuis les pièces configurées
+    const piecesDesc = (ctx.pieces_config || []).map(pc => {
+      const parts = [pc.typology];
+      if (pc.style) parts.push(pc.style);
+      if (pc.couleurs?.length) parts.push(pc.couleurs.join('/'));
+      return parts.join(' ');
+    }).join(', ') || ctx.typologies?.join(', ') || 'textile pro';
+
     const marquage = ctx.marquage && ctx.marquage !== 'neutre' ? `Marquage : ${ctx.marquage}.` : 'Sans marquage.';
-    const qualite = ctx.budget_qualite ? `Gamme : ${ctx.budget_qualite}.` : '';
-    const prompt = `Pièces : ${pieces}. ${marquage} ${qualite} ${nbPers}. Propose directement un mix chiffré.`;
+    const coupe = ctx.coupe ? `Coupe : ${ctx.coupe}.` : '';
+    const prompt = `Pièces : ${piecesDesc}. ${coupe} ${marquage} ${nbPers}. Propose directement un mix chiffré.`;
 
     sendToAssistant(prompt, { ...context, ...promptCtx, metier: ctx.metier });
   };
@@ -299,7 +333,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
           </div>
         )}
 
-        {/* Qualification buttons */}
+        {/* Qualification */}
         {currentStep && !streaming && (
           <div ref={questionRef} className="space-y-3">
             <div className="flex justify-start">
@@ -310,45 +344,77 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 pl-2">
-              {currentOptions.map((opt) => {
-                const isMulti = currentStep.type === 'multi';
-                const isSelected = isMulti && multiSelection.includes(opt.value);
-                return (
+
+            {/* Brief textarea */}
+            {currentStep.type === 'brief' && (
+              <div className="pl-2 space-y-2">
+                <textarea
+                  value={briefText}
+                  onChange={(e) => setBriefText(e.target.value)}
+                  placeholder="200 polos marine brodés pour un salon dans 3 semaines..."
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 resize-none"
+                />
+                <button
+                  onClick={() => {
+                    if (!briefText.trim()) return;
+                    setMessages(prev => [...prev, { role: 'user', content: briefText.trim() }]);
+                    const newCtx = { ...qualifCtx, brief_text: briefText.trim(), approche: 'idee' as string };
+                    setQualifCtx(newCtx);
+                    finishQualification(newCtx);
+                  }}
+                  disabled={!briefText.trim()}
+                  className="px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 disabled:opacity-30 transition-colors"
+                >
+                  Envoyer
+                </button>
+              </div>
+            )}
+
+            {/* Boutons single/multi */}
+            {currentStep.type !== 'brief' && (
+              <>
+                <div className="flex flex-wrap gap-2 pl-2">
+                  {currentOptions.map((opt) => {
+                    const isMulti = currentStep.type === 'multi';
+                    const isSelected = isMulti && multiSelection.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          if (isMulti) {
+                            setMultiSelection(prev =>
+                              prev.includes(opt.value)
+                                ? prev.filter(v => v !== opt.value)
+                                : [...prev, opt.value]
+                            );
+                          } else {
+                            handleChoice(currentStep, opt);
+                          }
+                        }}
+                        className={`px-4 py-2 text-sm font-medium border rounded-full transition-colors ${
+                          isSelected
+                            ? 'border-neutral-900 bg-neutral-900 text-white'
+                            : 'border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
+                        }`}
+                      >
+                        {opt.emoji && <span className="mr-1.5">{opt.emoji}</span>}
+                        {opt.label}
+                        {opt.sub && <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{opt.sub}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Multi-select confirm */}
+                {currentStep.type === 'multi' && multiSelection.length > 0 && (
                   <button
-                    key={opt.value}
-                    onClick={() => {
-                      if (isMulti) {
-                        setMultiSelection(prev =>
-                          prev.includes(opt.value)
-                            ? prev.filter(v => v !== opt.value)
-                            : [...prev, opt.value]
-                        );
-                      } else {
-                        handleChoice(currentStep, opt);
-                      }
-                    }}
-                    className={`px-4 py-2 text-sm font-medium border rounded-full transition-colors ${
-                      isSelected
-                        ? 'border-neutral-900 bg-neutral-900 text-white'
-                        : 'border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
-                    }`}
+                    onClick={() => handleMultiConfirm(currentStep)}
+                    className="ml-2 px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors"
                   >
-                    {opt.emoji && <span className="mr-1.5">{opt.emoji}</span>}
-                    {opt.label}
-                    {opt.sub && <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{opt.sub}</span>}
+                    Valider ({multiSelection.length})
                   </button>
-                );
-              })}
-            </div>
-            {/* Multi-select confirm */}
-            {currentStep.type === 'multi' && multiSelection.length > 0 && (
-              <button
-                onClick={() => handleMultiConfirm(currentStep)}
-                className="ml-2 px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors"
-              >
-                Valider ({multiSelection.length})
-              </button>
+                )}
+              </>
             )}
           </div>
         )}
