@@ -315,6 +315,7 @@ Prix indicatifs :
 - Transfert sérigraphique : ≈ 2-4 € HT/pce (logos précis, textiles techniques/polyester)
 - DTG (impression directe) : ≈ 4-7 € HT/pce (visuels complexes, toucher doux, coton clair UNIQUEMENT)
 - Transferts spéciaux (velours, gonflant, paillette) : ≈ 5-10 € HT/pce (effet premium/wahou)
+- CALCUL MARQUAGE OBLIGATOIRE : coût marquage = prix par pièce × nombre TOTAL de pièces dans le tableau (pas par personne, par PIÈCE marquée). Exemple : broderie à 5€/pce × 30 pièces = 150€ HT. Si le total marquage semble trop bas (< 3€/pce), tu t'es trompé — recalcule.
 - Inclure une estimation du marquage dans le total
 
 Compatibilité matière/technique :
