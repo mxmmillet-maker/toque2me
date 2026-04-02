@@ -43,7 +43,7 @@ export function AlternativesDrawer({
   // Slider states
   const [epaisseur, setEpaisseur] = useState<[number, number]>([0, 100]);
   const [gamme, setGamme] = useState<[number, number]>([0, 100]);
-  const [prixMax, setPrixMax] = useState(100);
+  const [prixMax, setPrixMax] = useState(999);
 
   // Computed max price from data
   const maxPrixFromData = useMemo(() => {

@@ -35,9 +35,21 @@ export default async function DevisPublicPage({ params }: { params: { token: str
           <div className="px-6 py-4 space-y-3">
             {lignes.map((l: any, i: number) => (
               <div key={i} className="flex justify-between text-sm">
-                <div>
-                  <p className="font-medium text-neutral-900">{l.nom}</p>
-                  <p className="text-xs text-neutral-400">Réf. {l.ref} — {l.qty} pce{l.qty > 1 ? 's' : ''}</p>
+                <div className="flex items-start gap-3">
+                  {l.image_url && (
+                    <img src={l.image_url} alt={l.nom} className="w-12 h-12 rounded-lg object-cover bg-neutral-50 flex-shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-medium text-neutral-900">{l.nom}</p>
+                    <p className="text-xs text-neutral-400">
+                      Réf. {l.ref} — {l.qty} pce{l.qty > 1 ? 's' : ''}
+                      {l.couleur_nom && (
+                        <span className="ml-1">
+                          — <span className="inline-block w-2.5 h-2.5 rounded-full align-middle mr-0.5" style={{ backgroundColor: l.couleur_hexa || '#ccc' }} /> {l.couleur_nom}
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
                 <span className="font-medium text-neutral-900 tabular-nums">{l.total_ligne_ht?.toFixed(2)} €</span>
               </div>

@@ -11,6 +11,7 @@ const devisRates = new Map<string, { count: number; reset: number }>();
 interface LigneInput {
   ref: string;
   qty: number;
+  couleur?: string; // nom de la couleur sélectionnée
 }
 
 interface LigneDevis {
@@ -18,6 +19,8 @@ interface LigneDevis {
   nom: string;
   categorie: string;
   image_url: string;
+  couleur_nom?: string;
+  couleur_hexa?: string;
   qty: number;
   prix_unitaire_ht: number;
   total_ligne_ht: number;
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest) {
   const refs = inputLignes.map(l => l.ref);
   const { data: products } = await supabase
     .from('products')
-    .select('id, nom, ref_fournisseur, categorie, fournisseur, image_url')
+    .select('id, nom, ref_fournisseur, categorie, fournisseur, image_url, couleurs')
     .in('ref_fournisseur', refs);
 
   if (!products || products.length === 0) {
@@ -114,11 +117,27 @@ export async function POST(req: NextRequest) {
     const prixVenteUnitaire = Math.ceil(prixAchat * margin.coefficient * 100) / 100;
     const totalLigne = Math.ceil(prixVenteUnitaire * input.qty * 100) / 100;
 
+    // Trouver l'image couleur si une couleur est spécifiée
+    let imageUrl = product.image_url;
+    let couleurNom: string | undefined;
+    let couleurHexa: string | undefined;
+    if (input.couleur && product.couleurs) {
+      const couleurs = product.couleurs as { nom: string; hexa: string; image?: string }[];
+      const match = couleurs.find(c => c.nom.toLowerCase() === input.couleur!.toLowerCase());
+      if (match) {
+        couleurNom = match.nom;
+        couleurHexa = match.hexa;
+        if (match.image) imageUrl = match.image;
+      }
+    }
+
     lignes.push({
       ref: product.ref_fournisseur,
       nom: product.nom,
       categorie: product.categorie,
-      image_url: product.image_url,
+      image_url: imageUrl,
+      couleur_nom: couleurNom,
+      couleur_hexa: couleurHexa,
       qty: input.qty,
       prix_unitaire_ht: prixVenteUnitaire,
       total_ligne_ht: totalLigne,
