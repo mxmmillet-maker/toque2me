@@ -338,28 +338,41 @@ export function scoreProducts(
       if (nomLower.includes('zippé')) score += 5;
     }
 
-    // Chic : bonus matières premium + catégories adaptées
+    // ── Style × catégorie × produit ────────────────────────────────────
+    const cat = (p.categorie || '').toLowerCase();
+
+    // Chic : chemise > polo > chino > t-shirt
     if (sty === 'chic') {
       if (nomLower.includes('piqué') && !nomLower.includes('épaules tombantes')) score += 10;
       if (nomLower.includes('oxford') || nomLower.includes('popeline') || nomLower.includes('premium')) score += 10;
-      // Chic : polo et chemise sont top, t-shirt basique moins
-      const cat = (p.categorie || '').toLowerCase();
       if (cat === 'chemises') score += 10;
-      if (cat === 'polos') score += 8; // polo = entre t-shirt et chemise
+      if (cat === 'polos') score += 8;
+      if (nomLower.includes('chino')) score += 10;
+      if (nomLower.includes('jean') || nomLower.includes('denim')) score -= 5;
     }
 
-    // Casual : t-shirt et sweat sont top, chemise moins adaptée
+    // Casual : t-shirt > sweat > jean > polo, chemise moins
     if (sty === 'casual') {
-      const cat = (p.categorie || '').toLowerCase();
       if (cat === 't-shirts' || cat === 'sweats') score += 8;
-      if (cat === 'chemises') score -= 10; // chemise pas casual
+      if (cat === 'chemises') score -= 10;
+      if (nomLower.includes('jean') || nomLower.includes('denim')) score += 5;
+      if (nomLower.includes('chino')) score += 3; // chino ok en casual mais moins que jean
     }
 
-    // Classique : chemise et polo, pas de sweat oversize
+    // Classique : chemise > polo > chino, pas de jean
     if (sty === 'classique') {
-      const cat = (p.categorie || '').toLowerCase();
       if (cat === 'chemises') score += 12;
       if (cat === 'polos') score += 8;
+      if (nomLower.includes('chino')) score += 10;
+      if (nomLower.includes('jean') || nomLower.includes('denim')) score -= 10;
+    }
+
+    // Sportswear : matières techniques, pas de chemise ni chino
+    if (sty === 'sportswear') {
+      if (nomLower.includes('technique') || nomLower.includes('respirant') || nomLower.includes('sport') || nomLower.includes('proact')) score += 10;
+      if (nomLower.includes('zippé')) score += 5;
+      if (cat === 'chemises') score -= 15;
+      if (nomLower.includes('chino')) score -= 10;
     }
 
     // Bonus secteur
