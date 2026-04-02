@@ -65,8 +65,7 @@ function mapCategorie(family: string, subFamily: string): string {
   if (sub.includes('chapeau') || sub.includes('bob') || sub.includes('bucket') || sub.includes('hat')) return 'Chapeaux';
   if (sub.includes('sac') || sub.includes('bag') || sub.includes('tote') || sub.includes('valise')) return 'Bagagerie';
   if (sub.includes('parapluie') || sub.includes('ombrelle')) return 'Parapluies';
-  if (fam.includes('headwear') || fam.includes('cap')) return 'Casquettes';
-  if (fam.includes('accessoire')) return 'Accessoires';
+  if (fam.includes('headwear') || fam.includes('accessoire')) return 'Accessoires'; // fallback — les casquettes/bonnets sont déjà matchés par sub_family
   if (fam.includes('bag')) return 'Bagagerie';
   return 'Autres';
 }
