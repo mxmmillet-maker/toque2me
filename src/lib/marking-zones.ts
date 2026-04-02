@@ -48,6 +48,8 @@ export const ZONES_BY_CATEGORY: Record<string, MarkingZone[]> = {
   'pantalons': [ZONE_COEUR], // cuisse = même grille que coeur
   'tabliers': [ZONE_CENTRE],
   'casquettes': [ZONE_FACE],
+  'bonnets': [ZONE_FACE],
+  'chapeaux': [ZONE_FACE],
   'accessoires': [ZONE_FACE],
 };
 

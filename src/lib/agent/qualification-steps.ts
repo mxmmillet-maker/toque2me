@@ -69,10 +69,10 @@ export interface QualificationContext {
 // ─────────────────────────────────────────────
 
 const PIECES_PAR_OCCASION: Record<string, string[]> = {
-  evenement:      ['T-shirts', 'Sweats', 'Accessoires'],
+  evenement:      ['T-shirts', 'Sweats', 'Casquettes'],
   quotidien:      ['Polos', 'Pantalons', 'Sweats'],
-  communication:  ['T-shirts', 'Sweats', 'Accessoires'],
-  cadeau:         ['Sweats', 'Vestes', 'Accessoires'],
+  communication:  ['T-shirts', 'Sweats', 'Casquettes'],
+  cadeau:         ['Sweats', 'Vestes', 'Casquettes'],
   workwear:       ['T-shirts', 'Pantalons', 'Vestes'],
 };
 
@@ -88,7 +88,8 @@ const TYPO_OPTIONS_DEFAULT: StepOption[] = [
   { value: 'Vestes',      label: 'Vestes',               emoji: '🧥' },
   { value: 'Pantalons',   label: 'Pantalons',            emoji: '👖' },
   { value: 'Tabliers',    label: 'Tabliers',             emoji: '🍳' },
-  { value: 'Accessoires', label: 'Casquettes / Bonnets', emoji: '🧢' },
+  { value: 'Casquettes',  label: 'Casquettes',            emoji: '🧢' },
+  { value: 'Bonnets',     label: 'Bonnets',               emoji: '🧶' },
 ];
 
 const TYPO_OPTIONS_WORKWEAR: Record<string, StepOption[]> = {

@@ -54,10 +54,13 @@ function mapCategorie(family: string, subFamily: string): string {
   if (sub.includes('veste') || sub.includes('jacket') || sub.includes('blouson') || sub.includes('parka') || sub.includes('manteau')) return 'Vestes';
   if (sub.includes('pantalon') || sub.includes('pantacourt') || sub.includes('short') || sub.includes('bermuda')) return 'Pantalons';
   if (sub.includes('chemise') || sub.includes('shirt')) return 'Chemises';
-  if (sub.includes('casquette') || sub.includes('bonnet') || sub.includes('chapeau') || sub.includes('bandana')) return 'Accessoires';
+  if (sub.includes('casquette') || sub.includes('cap') || sub.includes('trucker')) return 'Casquettes';
+  if (sub.includes('bonnet') || sub.includes('beanie')) return 'Bonnets';
+  if (sub.includes('chapeau') || sub.includes('bob') || sub.includes('bucket') || sub.includes('hat')) return 'Chapeaux';
   if (sub.includes('sac') || sub.includes('bag') || sub.includes('tote') || sub.includes('valise')) return 'Bagagerie';
   if (sub.includes('parapluie') || sub.includes('ombrelle')) return 'Parapluies';
-  if (fam.includes('headwear') || fam.includes('accessoire')) return 'Accessoires';
+  if (fam.includes('headwear') || fam.includes('cap')) return 'Casquettes';
+  if (fam.includes('accessoire')) return 'Accessoires';
   if (fam.includes('bag')) return 'Bagagerie';
   return 'Autres';
 }
