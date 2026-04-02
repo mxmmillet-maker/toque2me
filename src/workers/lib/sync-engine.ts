@@ -1,5 +1,6 @@
 import { SupplierAdapter, NormalizedProduct, PriceGrid, SyncResult } from './types';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getMargin } from '@/lib/pricing';
 
 // ─── Moteur de synchronisation générique ─────────────────────────────────────
 
@@ -56,7 +57,10 @@ export async function syncSupplier(adapter: SupplierAdapter): Promise<SyncResult
       }
     }
 
-    // ── 5. Log du résultat ────────────────────────────────────────────────────
+    // ── 5. Mettre à jour prix_from sur les produits (prix catalogue = palier min × marge) ──
+    await updatePrixFrom(adapter.name);
+
+    // ── 6. Log du résultat ────────────────────────────────────────────────────
     const result: SyncResult = {
       fournisseur: adapter.name,
       nb_traites,
@@ -130,6 +134,59 @@ async function syncPrices(prices: PriceGrid[], fournisseur: string) {
   // Insérer en batch (max 1000 par appel)
   for (let i = 0; i < pricesWithId.length; i += 1000) {
     await supabaseAdmin.from('prices').insert(pricesWithId.slice(i, i + 1000));
+  }
+}
+
+// ─── Mise à jour prix_from (prix catalogue = palier min × marge) ─────────────
+
+async function updatePrixFrom(fournisseur: string) {
+  // Charger tous les produits du fournisseur
+  const { data: products } = await supabaseAdmin
+    .from('products')
+    .select('id, fournisseur, categorie')
+    .eq('fournisseur', fournisseur)
+    .eq('actif', true);
+
+  if (!products || products.length === 0) return;
+
+  // Charger tous les prix de ce fournisseur
+  const { data: allPrices } = await supabaseAdmin
+    .from('prices')
+    .select('product_id, qte_min, prix_ht')
+    .eq('fournisseur', fournisseur)
+    .order('qte_min', { ascending: true });
+
+  if (!allPrices || allPrices.length === 0) return;
+
+  // Prix min par produit (palier qte_min le plus bas)
+  const minPrixAchat = new Map<string, number>();
+  for (const p of allPrices) {
+    if (!minPrixAchat.has(p.product_id)) {
+      minPrixAchat.set(p.product_id, Number(p.prix_ht));
+    }
+  }
+
+  // Marge par défaut du fournisseur
+  const margin = await getMargin(fournisseur);
+
+  // Batch update prix_from
+  const updates: { id: string; prix_from: number }[] = [];
+  for (const product of products) {
+    const prixAchat = minPrixAchat.get(product.id);
+    if (prixAchat !== undefined) {
+      updates.push({
+        id: product.id,
+        prix_from: Math.ceil(prixAchat * margin.coefficient * 100) / 100,
+      });
+    }
+  }
+
+  // Batch upsert par lots de 500
+  for (let i = 0; i < updates.length; i += 500) {
+    const batch = updates.slice(i, i + 500);
+    await supabaseAdmin
+      .from('products')
+      .upsert(batch, { onConflict: 'id' });
   }
 }
 
