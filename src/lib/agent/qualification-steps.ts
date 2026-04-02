@@ -28,6 +28,7 @@ export interface QualificationStep {
 export interface QualificationContext {
   secteur: string;
   metier?: string;
+  typologies?: string[];
   environnement?: string;
   style?: string;
   repartition_hf?: string;
@@ -85,7 +86,26 @@ export const QUALIFICATION_STEPS: QualificationStep[] = [
     ],
   },
 
-  // ── ÉTAPE 2 : Style ───────────────────────────────────────────────────────
+  // ── ÉTAPE 2 : Pièces recherchées ───────────────────────────────────────────
+
+  {
+    id: 'typologies',
+    question: 'Quelles pièces recherchez-vous ?',
+    sous_titre: 'Sélectionnez une ou plusieurs catégories.',
+    type: 'multi',
+    options: [
+      { value: 'T-shirts',   label: 'T-shirts',            emoji: '👕' },
+      { value: 'Polos',      label: 'Polos',               emoji: '👔' },
+      { value: 'Chemises',   label: 'Chemises',            emoji: '🪢' },
+      { value: 'Sweats',     label: 'Sweats / Hoodies',    emoji: '🧥' },
+      { value: 'Vestes',     label: 'Vestes / Manteaux',   emoji: '🧤' },
+      { value: 'Pantalons',  label: 'Pantalons',           emoji: '👖' },
+      { value: 'Tabliers',   label: 'Tabliers',            emoji: '🍳' },
+      { value: 'Accessoires',label: 'Casquettes / Bonnets',emoji: '🧢' },
+    ],
+  },
+
+  // ── ÉTAPE 3 : Style ───────────────────────────────────────────────────────
 
   {
     id: 'style',
@@ -224,6 +244,7 @@ export function qualificationToPromptContext(ctx: QualificationContext) {
   return {
     secteur: ctx.secteur,
     metier: ctx.metier,
+    typologies: ctx.typologies,
     style: ctx.style,
     repartition_hf: ctx.repartition_hf,
     usage: environnementToUsage(ctx.environnement),
@@ -256,6 +277,7 @@ export function buildQualificationSummary(ctx: QualificationContext): string {
   const lignes = [
     `**Secteur :** ${ctx.secteur}`,
     ctx.metier ? `**Métier :** ${ctx.metier}` : null,
+    ctx.typologies?.length ? `**Pièces :** ${ctx.typologies.join(', ')}` : null,
     ctx.environnement ? `**Environnement :** ${ctx.environnement}` : null,
     ctx.style ? `**Style :** ${ctx.style}` : null,
     ctx.repartition_hf ? `**Équipe :** ${ctx.repartition_hf}` : null,
