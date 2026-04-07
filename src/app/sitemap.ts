@@ -18,6 +18,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/btp`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${BASE_URL}/btp/electriciens`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE_URL}/btp/chantier`, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${BASE_URL}/guides/restauration`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/guides/electricien`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${BASE_URL}/guides/chantier`, changeFrequency: 'monthly', priority: 0.7 },
   ];
 
   // Pages produits

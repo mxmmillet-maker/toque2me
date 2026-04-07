@@ -22,14 +22,14 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Toque2Me — Textile & objets personnalisés pour professionnels",
   description: "Configurez et commandez vos vêtements pro personnalisés. Devis en 3 minutes, conformité réglementaire incluse.",
-  metadataBase: new URL("https://toque2me-two.vercel.app"),
+  metadataBase: new URL("https://toque2me.fr"),
   openGraph: {
     title: "Toque2Me — Textile & objets personnalisés pour professionnels",
     description: "Configurez et commandez vos vêtements pro personnalisés. Devis en 3 minutes, conformité réglementaire incluse.",
     siteName: "Toque2Me",
     locale: "fr_FR",
     type: "website",
-    url: "https://toque2me-two.vercel.app",
+    url: "https://toque2me.fr",
     images: [{ url: "/api/og", width: 1200, height: 630, alt: "Toque2Me — Textile pro personnalisé" }],
   },
   twitter: {
@@ -132,6 +132,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className={cn("font-sans", geistSans.variable)}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'LocalBusiness',
+        name: 'Toque2Me',
+        description: 'Textile et objets personnalisés pour professionnels. Broderie, sérigraphie, DTF. Devis en 3 minutes.',
+        url: 'https://toque2me.fr',
+        logo: 'https://toque2me.fr/api/og',
+        address: {
+          '@type': 'PostalAddress',
+          addressLocality: 'Bordeaux',
+          addressRegion: 'Nouvelle-Aquitaine',
+          addressCountry: 'FR',
+        },
+        areaServed: { '@type': 'Country', name: 'France' },
+        priceRange: '€€',
+        sameAs: [],
+      }) }} />
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

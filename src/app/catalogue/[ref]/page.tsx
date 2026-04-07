@@ -70,6 +70,16 @@ export default async function ProductPage({ params, searchParams }: { params: { 
     } : undefined,
   };
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Catalogue', item: 'https://toque2me.fr/catalogue' },
+      ...(product.categorie ? [{ '@type': 'ListItem', position: 2, name: product.categorie, item: `https://toque2me.fr/catalogue?categorie=${encodeURIComponent(product.categorie)}` }] : []),
+      { '@type': 'ListItem', position: product.categorie ? 3 : 2, name: product.nom },
+    ],
+  };
+
   const hasNormes = product.normes && product.normes.length > 0;
   const hasCertifications = product.certifications && product.certifications.length > 0;
 
@@ -80,6 +90,7 @@ export default async function ProductPage({ params, searchParams }: { params: { 
   return (
     <main className="min-h-screen bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Breadcrumb */}
         <nav className="mb-8 text-sm text-neutral-400">
