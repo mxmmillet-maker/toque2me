@@ -105,6 +105,10 @@ function Navbar() {
                 <Link href="/catalogue?categorie=Chef" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
                   <span className="text-lg">👨‍🍳</span> Chef / Cuisine pro
                 </Link>
+                <div className="border-t border-slate-100 my-1" />
+                <Link href="/marquage" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
+                  <span className="text-lg">🧵</span> Guide marquage
+                </Link>
               </div>
             </div>
           </div>

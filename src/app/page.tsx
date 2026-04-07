@@ -155,6 +155,7 @@ export default function Home() {
               <Link href="/configurateur" className="hover:text-neutral-900 transition-colors">Configurateur</Link>
               <Link href="/restaurateurs" className="hover:text-neutral-900 transition-colors">Restaurateurs</Link>
               <Link href="/btp" className="hover:text-neutral-900 transition-colors">BTP</Link>
+              <Link href="/marquage" className="hover:text-neutral-900 transition-colors">Marquage</Link>
               <Link href="/bordeaux" className="hover:text-neutral-900 transition-colors">Bordeaux</Link>
             </div>
           </div>
