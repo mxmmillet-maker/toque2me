@@ -32,7 +32,7 @@ export default function WidgetPage() {
       </div>
 
       <a
-        href={`https://toque2me.fr/calculateur?ref=${ref}&utm_source=widget`}
+        href={`https://toque2me.com/calculateur?ref=${ref}&utm_source=widget`}
         target="_blank"
         rel="noopener"
         className="block w-full mt-4 py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg text-center hover:bg-neutral-800 transition-colors"
@@ -40,7 +40,7 @@ export default function WidgetPage() {
         Obtenir un devis détaillé
       </a>
       <p className="text-[10px] text-neutral-400 text-center mt-2">
-        <a href="https://toque2me.fr" target="_blank" rel="noopener" className="underline">toque2me.fr</a> — textile personnalisé pour pros
+        <a href="https://toque2me.com" target="_blank" rel="noopener" className="underline">toque2me.com</a> — textile personnalisé pour pros
       </p>
     </div>
   );

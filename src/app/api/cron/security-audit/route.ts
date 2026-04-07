@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-const BASE_URL = 'https://toque2me.fr';
+const BASE_URL = 'https://toque2me.com';
 
 const REQUIRED_HEADERS: Record<string, (value: string | null) => boolean> = {
   'x-content-type-options': (v) => v === 'nosniff',

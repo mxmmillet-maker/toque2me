@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-const BASE_URL = 'https://toque2me.fr';
+const BASE_URL = 'https://toque2me.com';
 const SITEMAP_URL = `${BASE_URL}/sitemap.xml`;
 
 export async function GET(req: NextRequest) {
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          host: 'toque2me.fr',
+          host: 'toque2me.com',
           key: process.env.INDEXNOW_KEY,
           keyLocation: `${BASE_URL}/${process.env.INDEXNOW_KEY}.txt`,
           urlList: [

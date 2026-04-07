@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
             color: 'white',
           }}
         >
-          toque2me.fr
+          toque2me.com
         </div>
       </div>
     ),

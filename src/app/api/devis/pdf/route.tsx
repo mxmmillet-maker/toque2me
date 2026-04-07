@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
 </table>
 
 <div class="share">
-  Partagez ce devis : <strong>toque2me.fr/devis/${token}</strong>
+  Partagez ce devis : <strong>toque2me.com/devis/${token}</strong>
 </div>
 
 <div class="footer">

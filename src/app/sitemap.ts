@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { MetadataRoute } from 'next';
 
-const BASE_URL = 'https://toque2me.fr';
+const BASE_URL = 'https://toque2me.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createClient(

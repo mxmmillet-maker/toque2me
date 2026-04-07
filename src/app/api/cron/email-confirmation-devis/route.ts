@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
       try {
         await resend.emails.send({
-          from: 'Toque2Me <devis@toque2me.fr>',
+          from: 'Toque2Me <devis@toque2me.com>',
           to: client.email,
           subject: `Votre devis Toque2Me n°${quote.id} est prêt`,
           html: buildConfirmationEmail(quote, client),
@@ -86,7 +86,7 @@ function buildConfirmationEmail(
   quote: { id: string; share_token: string; total_ht: number },
   client: { nom: string },
 ) {
-  const lienDevis = `https://toque2me.fr/devis/${quote.share_token}`;
+  const lienDevis = `https://toque2me.com/devis/${quote.share_token}`;
   const totalFormate = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(quote.total_ht);
 
   return `

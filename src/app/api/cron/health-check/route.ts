@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-const BASE_URL = 'https://toque2me.fr';
+const BASE_URL = 'https://toque2me.com';
 
 interface CheckResult {
   route: string;
@@ -89,7 +89,7 @@ async function sendAlertEmail(failingChecks: CheckResult[]) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Toque2Me Ops <ops@toque2me.fr>',
+      from: 'Toque2Me Ops <ops@toque2me.com>',
       to: adminEmail,
       subject: '🚨 Toque2Me — Page(s) down',
       text: `Les pages suivantes sont en erreur :\n\n${body}\n\nVérifié le ${new Date().toISOString()}`,

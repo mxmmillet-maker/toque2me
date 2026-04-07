@@ -22,14 +22,14 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "Toque2Me — Textile & objets personnalisés pour professionnels",
   description: "Configurez et commandez vos vêtements pro personnalisés. Devis en 3 minutes, conformité réglementaire incluse.",
-  metadataBase: new URL("https://toque2me.fr"),
+  metadataBase: new URL("https://toque2me.com"),
   openGraph: {
     title: "Toque2Me — Textile & objets personnalisés pour professionnels",
     description: "Configurez et commandez vos vêtements pro personnalisés. Devis en 3 minutes, conformité réglementaire incluse.",
     siteName: "Toque2Me",
     locale: "fr_FR",
     type: "website",
-    url: "https://toque2me.fr",
+    url: "https://toque2me.com",
     images: [{ url: "/api/og", width: 1200, height: 630, alt: "Toque2Me — Textile pro personnalisé" }],
   },
   twitter: {
@@ -137,8 +137,8 @@ export default function RootLayout({
         '@type': 'LocalBusiness',
         name: 'Toque2Me',
         description: 'Textile et objets personnalisés pour professionnels. Broderie, sérigraphie, DTF. Devis en 3 minutes.',
-        url: 'https://toque2me.fr',
-        logo: 'https://toque2me.fr/api/og',
+        url: 'https://toque2me.com',
+        logo: 'https://toque2me.com/api/og',
         address: {
           '@type': 'PostalAddress',
           addressLocality: 'Bordeaux',

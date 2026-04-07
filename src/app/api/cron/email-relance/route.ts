@@ -71,14 +71,14 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const lienDevis = `https://toque2me.fr/devis/${quote.share_token}`;
+      const lienDevis = `https://toque2me.com/devis/${quote.share_token}`;
       const subject = type === 'j3'
         ? 'Votre devis Toque2Me vous attend'
         : 'Dernière chance — votre devis expire bientôt';
 
       try {
         await resend.emails.send({
-          from: 'Toque2Me <devis@toque2me.fr>',
+          from: 'Toque2Me <devis@toque2me.com>',
           to: client.email,
           subject,
           html: buildRelanceEmail(quote, client, type, lienDevis),

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ statut: 'skip', details: 'RESEND_API_KEY non configurée' });
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@toque2me.fr';
+  const adminEmail = process.env.ADMIN_EMAIL || 'admin@toque2me.com';
   const start = Date.now();
   const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     }).format(new Date());
 
     await resend.emails.send({
-      from: 'Toque2Me <devis@toque2me.fr>',
+      from: 'Toque2Me <devis@toque2me.com>',
       to: adminEmail,
       subject: `Toque2Me — Rapport hebdo du ${dateFormatee}`,
       html: buildReportEmail({

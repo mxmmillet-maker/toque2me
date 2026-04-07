@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/api/', '/admin/', '/espace-client/'],
       },
     ],
-    sitemap: 'https://toque2me.fr/sitemap.xml',
+    sitemap: 'https://toque2me.com/sitemap.xml',
   };
 }
