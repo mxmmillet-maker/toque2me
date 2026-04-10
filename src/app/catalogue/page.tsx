@@ -13,7 +13,7 @@ async function getProducts() {
   while (true) {
     const { data, error } = await supabaseAdmin
       .from('products')
-      .select('id, nom, ref_fournisseur, categorie, image_url, grammage, origine, certifications, style, couleurs, score_durabilite, score_premium, prix_from')
+      .select('id, nom, ref_fournisseur, categorie, image_url, grammage, origine, certifications, style, couleurs, score_durabilite, score_premium, prix_from, univers, est_nouveaute, genre, marque, tags')
       .eq('actif', true)
       .or('exclu.is.null,exclu.eq.false')
       .order('nom')

@@ -1,6 +1,6 @@
 'use client';
 
-interface Filters {
+export interface Filters {
   categorie: string;
   grammageMin: number;
   grammageMax: number;
@@ -8,6 +8,9 @@ interface Filters {
   certification: string;
   couleur: string;
   tri: string;
+  univers: string;
+  genre: string;
+  nouveautes: boolean;
 }
 
 interface FilterBarProps {
@@ -22,7 +25,7 @@ export function FilterBar({ filters, onChange, certifications, couleurs }: Filte
     onChange({ ...filters, [key]: value });
   };
 
-  const hasFilters = filters.grammageMin > 0 || filters.grammageMax < 999 || filters.lavage || filters.certification || filters.couleur || filters.tri;
+  const hasFilters = filters.grammageMin > 0 || filters.grammageMax < 999 || filters.lavage || filters.certification || filters.couleur || filters.tri || filters.genre;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -96,6 +99,19 @@ export function FilterBar({ filters, onChange, certifications, couleurs }: Filte
         </div>
       )}
 
+      {/* Genre */}
+      <select
+        value={filters.genre}
+        onChange={(e) => update('genre', e.target.value)}
+        className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-neutral-900 cursor-pointer"
+      >
+        <option value="">Genre</option>
+        <option value="homme">Homme</option>
+        <option value="femme">Femme</option>
+        <option value="unisexe">Unisexe</option>
+        <option value="enfant">Enfant</option>
+      </select>
+
       {/* Tri */}
       <select
         value={filters.tri}
@@ -111,7 +127,7 @@ export function FilterBar({ filters, onChange, certifications, couleurs }: Filte
 
       {hasFilters && (
         <button
-          onClick={() => onChange({ ...filters, grammageMin: 0, grammageMax: 999, lavage: '', certification: '', couleur: '', tri: '' })}
+          onClick={() => onChange({ ...filters, grammageMin: 0, grammageMax: 999, lavage: '', certification: '', couleur: '', tri: '', genre: '' })}
           className="text-xs text-slate-500 hover:text-neutral-900 underline underline-offset-2 transition-colors"
         >
           Réinitialiser

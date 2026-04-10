@@ -25,6 +25,13 @@ export interface NormalizedProduct {
   marquage_dispo?: string[];
   meta?: Record<string, any>;
   actif?: boolean;
+  // Colonnes enrichies (migration 005)
+  univers?: Record<string, number>;
+  est_nouveaute?: boolean;
+  tags?: Record<string, any>;
+  genre?: string;
+  composition?: string;
+  marque?: string;
 }
 
 export interface Variante {

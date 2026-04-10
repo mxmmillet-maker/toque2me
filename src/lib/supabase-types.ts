@@ -16,4 +16,11 @@ export interface SupabaseProduct {
   couleurs?: { nom: string; hexa: string; image?: string }[];
   actif: boolean;
   prix_from?: number;
+  // Colonnes enrichies (migration 005)
+  univers?: Record<string, number>;
+  est_nouveaute?: boolean;
+  tags?: Record<string, any>;
+  genre?: string;
+  composition?: string;
+  marque?: string;
 }

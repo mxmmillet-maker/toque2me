@@ -5,8 +5,10 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { Analytics } from "@vercel/analytics/react";
+import { CartProvider } from "@/lib/cart";
 
 const ChatBubble = dynamic(() => import("@/components/agent/ChatBubble").then(m => m.ChatBubble), { ssr: false });
+const NavIcons = dynamic(() => import("@/components/nav/NavIcons").then(m => m.NavIcons), { ssr: false });
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -118,12 +120,15 @@ function Navbar() {
           </Link>
         </div>
 
-        <Link
-          href="/configurateur"
-          className="px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
-        >
-          Demander un devis
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/configurateur"
+            className="hidden sm:inline-flex px-4 py-2 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
+          >
+            Demander un devis
+          </Link>
+          <NavIcons />
+        </div>
       </nav>
     </header>
   );
@@ -156,9 +161,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Navbar />
-        {children}
-        <ChatBubble />
+        <CartProvider>
+          <Navbar />
+          {children}
+          <ChatBubble />
+        </CartProvider>
         <Analytics />
       </body>
     </html>

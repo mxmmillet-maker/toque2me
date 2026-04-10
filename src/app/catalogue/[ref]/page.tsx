@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { NormeBadge } from '@/components/catalogue/NormeBadge';
 import { PriceGrid } from '@/components/catalogue/PriceGrid';
 import { ColorSelector } from '@/components/catalogue/ColorSelector';
+import { AddToCartButton } from '@/components/catalogue/AddToCartButton';
 import { getPriceTiers } from '@/lib/pricing';
 import type { Metadata } from 'next';
 
@@ -208,34 +209,56 @@ export default async function ProductPage({ params, searchParams }: { params: { 
             )}
 
             {/* CTA */}
-            <div className="mt-auto pt-4 space-y-3">
+            <div className="mt-auto pt-4 space-y-4">
               {fromPack && packLineId ? (
-                <Link
-                  href={packLineId === 'add'
-                    ? `/restaurateurs?add=${product.ref_fournisseur}`
-                    : `/restaurateurs?replace=${packLineId}&ref=${product.ref_fournisseur}`
-                  }
-                  className="inline-flex items-center justify-center w-full px-8 py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 active:bg-neutral-950 transition-colors"
-                >
-                  {packLineId === 'add' ? 'Ajouter au pack' : 'Sélectionner pour le pack'}
-                  <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.5 12.75l6 6 9-13.5" />
-                  </svg>
-                </Link>
+                <div className="space-y-3">
+                  <Link
+                    href={packLineId === 'add'
+                      ? `/restaurateurs?add=${product.ref_fournisseur}`
+                      : `/restaurateurs?replace=${packLineId}&ref=${product.ref_fournisseur}`
+                    }
+                    className="inline-flex items-center justify-center w-full px-8 py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 active:bg-neutral-950 transition-colors"
+                  >
+                    {packLineId === 'add' ? 'Ajouter au pack' : 'Sélectionner pour le pack'}
+                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  </Link>
+                  <p className="text-xs text-neutral-400 text-center">Ce produit remplacera la ligne actuelle du pack</p>
+                </div>
               ) : (
-                <Link
-                  href={`/calculateur?ref=${product.ref_fournisseur}`}
-                  className="inline-flex items-center justify-center w-full sm:w-auto px-8 py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 active:bg-neutral-950 transition-colors"
-                >
-                  Configurer mon devis
-                  <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                  </svg>
-                </Link>
+                <div className="space-y-4">
+                  {/* Ajout au panier */}
+                  <AddToCartButton
+                    ref_fournisseur={product.ref_fournisseur}
+                    nom={product.nom}
+                    image_url={product.image_url}
+                    prix_from={prixFrom ?? undefined}
+                    categorie={product.categorie}
+                    couleurs={product.couleurs}
+                  />
+
+                  {/* Devis rapide (sans panier) */}
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-neutral-100" />
+                    <span className="text-xs text-neutral-400">ou</span>
+                    <div className="flex-1 h-px bg-neutral-100" />
+                  </div>
+
+                  <Link
+                    href={`/calculateur?ref=${product.ref_fournisseur}`}
+                    className="inline-flex items-center justify-center w-full px-6 py-2.5 border border-neutral-200 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-50 transition-colors"
+                  >
+                    Devis rapide via le configurateur
+                    <svg className="ml-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                    </svg>
+                  </Link>
+                  <p className="text-xs text-neutral-400 text-center sm:text-left">
+                    Devis gratuit — réponse sous 24h
+                  </p>
+                </div>
               )}
-              <p className="text-xs text-neutral-400 text-center sm:text-left">
-                {fromPack ? 'Ce produit remplacera la ligne actuelle du pack' : 'Devis gratuit — réponse sous 24h'}
-              </p>
             </div>
           </div>
         </div>

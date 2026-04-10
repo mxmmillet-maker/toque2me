@@ -1,4 +1,6 @@
 import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid, Variante } from '../lib/types';
+import { tagProduct } from '@/lib/product-tagger';
+import { scoreUniverses, isNouveaute, parseGenre } from '@/lib/universe-affinity';
 
 // ─── TopTex API v3 ────────────────────────────────────────────────────────────
 // Auth: POST /v3/authenticate {username, password} + header x-api-key → JWT (1h)
@@ -253,41 +255,79 @@ export const ToptexAdapter: SupplierAdapter = {
     const refFournisseur = raw.catalogReference || raw.supplierReference || '';
     const variantes = extractVariantes(raw.colors, refFournisseur);
     const marquage = extractMarquageDispo(raw);
+    const nom = `${fr(raw.designation)} ${brand}`.trim();
+    const description = fr(raw.description);
+    const categorie = mapCategorie(family, subFamily);
+    const certifications = parseCertifications(raw);
+    const normes = parseNormes(raw);
+    const compositionRaw = frOrNull(raw.composition);
+    const genreRaw = frOrNull(raw.gender);
+
+    const meta = {
+      col: frOrNull(raw.neckType),
+      capuche: fr(raw.hood) === 'Oui',
+      coupe: frOrNull(raw.fit),
+      sous_type: frOrNull(raw.style),
+      composition: compositionRaw,
+      activites: Array.isArray(raw.activity)
+        ? raw.activity.map((a: any) => fr(a)).filter(Boolean)
+        : [],
+      maille: frOrNull(raw.typeWeaving),
+      fermeture: frOrNull(raw.typeFastening),
+      impermeabilite: frOrNull(raw.waterproof),
+      genre_structure: genreRaw,
+      arguments_vente: frOrNull(raw.salesArguments),
+    };
+
+    // ── Product tagger (famille, type, matière, usages, etc.) ──
+    const productTags = tagProduct({
+      nom,
+      description,
+      categorie,
+      grammage,
+      certifications,
+      normes,
+    });
+
+    // ── Universe affinity scoring ──
+    const univers = scoreUniverses({
+      nom,
+      description,
+      categorie,
+      marque: brand,
+      genre: parseGenre(genreRaw) || undefined,
+      normes,
+      certifications,
+      grammage,
+      meta,
+      tags: productTags,
+    });
 
     return {
       fournisseur: 'toptex',
       ref_fournisseur: refFournisseur,
-      nom: `${fr(raw.designation)} ${brand}`.trim(),
-      description: fr(raw.description),
-      categorie: mapCategorie(family, subFamily),
+      nom,
+      description,
+      categorie,
       image_url: extractImageUrl(raw.images),
       grammage,
       origine: '',
-      certifications: parseCertifications(raw),
-      normes: parseNormes(raw),
+      certifications,
+      normes,
       secteurs: ['entreprise'],
       score_durabilite: scores.durabilite,
       score_premium: scores.premium,
       couleurs: extractColors(raw.colors),
       variantes: variantes.length > 0 ? variantes : undefined,
       marquage_dispo: marquage.length > 0 ? marquage : undefined,
-      meta: {
-        col: frOrNull(raw.neckType),
-        capuche: fr(raw.hood) === 'Oui',
-        coupe: frOrNull(raw.fit),
-        sous_type: frOrNull(raw.style),
-        composition: frOrNull(raw.composition),
-        activites: Array.isArray(raw.activity)
-          ? raw.activity.map((a: any) => fr(a)).filter(Boolean)
-          : [],
-        maille: frOrNull(raw.typeWeaving),
-        fermeture: frOrNull(raw.typeFastening),
-        impermeabilite: frOrNull(raw.waterproof),
-        genre_structure: frOrNull(raw.gender),
-        arguments_vente: frOrNull(raw.salesArguments),
-      },
-      // actif n'est pas inclus — le sync engine fait un upsert
-      // et on ne veut pas écraser le statut actif/exclu existant
+      meta,
+      // Colonnes enrichies (migration 005)
+      univers,
+      est_nouveaute: isNouveaute(refFournisseur),
+      tags: productTags as any,
+      genre: parseGenre(genreRaw) || undefined,
+      composition: compositionRaw || undefined,
+      marque: brand || undefined,
     };
   },
 

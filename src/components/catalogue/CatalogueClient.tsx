@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { SupabaseProduct } from '@/lib/supabase-types';
 import { SearchBar } from './SearchBar';
-import { FilterBar } from './FilterBar';
+import { FilterBar, type Filters } from './FilterBar';
 import { ProductCard } from './ProductCard';
 
 const PAGE_SIZE = 24;
@@ -13,6 +13,18 @@ const CATEGORY_ORDER = [
   'Tabliers', 'Chef', 'Accessoires', 'Bagagerie', 'Parapluies',
   'Goodies', 'Objets tech',
 ];
+
+const UNIVERS_LABELS: Record<string, string> = {
+  hospitality: 'Hospitality',
+  workwear: 'Workwear',
+  evenementiel: 'Événementiel',
+  sportswear: 'Sportswear',
+  epi: 'EPI',
+  sante: 'Santé & Beauté',
+};
+
+// Bonus de ranking pour les nouveautés (0-1 scale, ajouté au score combiné)
+const NOUVEAUTE_BOOST = 0.15;
 
 interface CatalogueClientProps {
   products: SupabaseProduct[];
@@ -31,6 +43,9 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     certification: '',
     couleur: '',
     tri: '',
+    univers: '',
+    genre: '',
+    nouveautes: false,
   });
 
   // Tous les produits (ceux avec prix en premier)
@@ -75,10 +90,12 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
   }, [productsWithPrice]);
 
   const filtered = useMemo(() => {
+    const activeUnivers = filters.univers;
+
     const result = productsWithPrice.filter((p) => {
       if (search) {
         const q = search.toLowerCase();
-        const haystack = `${p.nom} ${p.description} ${p.categorie} ${p.ref_fournisseur}`.toLowerCase();
+        const haystack = `${p.nom} ${p.description} ${p.categorie} ${p.ref_fournisseur} ${p.marque || ''}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       if (filters.categorie && p.categorie !== filters.categorie) return false;
@@ -86,11 +103,14 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
       if (filters.grammageMax < 999 && p.grammage && p.grammage > filters.grammageMax) return false;
       if (filters.certification && !(p.certifications || []).includes(filters.certification)) return false;
       if (filters.couleur && !(p.couleurs || []).some((c: any) => c.nom === filters.couleur)) return false;
+      if (filters.genre && p.genre !== filters.genre) return false;
+      if (filters.nouveautes && !p.est_nouveaute) return false;
+      // Filtre univers : garder uniquement les produits qui ont un score > 0 dans cet univers
+      if (activeUnivers && !(p.univers as any)?.[activeUnivers]) return false;
       // Lavage : on cherche dans la description
       if (filters.lavage) {
         const desc = (p.description || '').toLowerCase();
         const temp = parseInt(filters.lavage);
-        // Cherche "60°" ou "60 °" ou "60°C" ou "lavable à 60"
         const match = desc.match(/(\d+)\s*°/g);
         if (match) {
           const maxTemp = Math.max(...match.map(m => parseInt(m)));
@@ -101,6 +121,22 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
       }
       return true;
     });
+
+    // ── Scoring composite pour le tri ──
+    const getCompositeScore = (p: any): number => {
+      let score = 0;
+      // Base : qualité (0-200 → normalisé 0-1)
+      score += ((p.score_premium || 0) + (p.score_durabilite || 0)) / 200;
+      // Boost nouveauté
+      if (p.est_nouveaute) score += NOUVEAUTE_BOOST;
+      // Boost affinité univers (si un univers est sélectionné, le score d'affinité booste)
+      if (activeUnivers && (p.univers as any)?.[activeUnivers]) {
+        score += (p.univers as any)[activeUnivers] * 0.3;
+      }
+      // Pénalité si pas d'image
+      if (!p.image_url) score -= 0.5;
+      return score;
+    };
 
     // Tri
     switch (filters.tri) {
@@ -121,15 +157,8 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
         });
         break;
       default:
-        // Défaut : image d'abord, puis qualité
-        result.sort((a, b) => {
-          const aImg = a.image_url ? 1 : 0;
-          const bImg = b.image_url ? 1 : 0;
-          if (aImg !== bImg) return bImg - aImg;
-          const aS = (a.score_premium || 0) + (a.score_durabilite || 0);
-          const bS = (b.score_premium || 0) + (b.score_durabilite || 0);
-          return bS - aS;
-        });
+        // Défaut : score composite (qualité + nouveauté + affinité univers)
+        result.sort((a, b) => getCompositeScore(b) - getCompositeScore(a));
     }
 
     return result;
@@ -173,6 +202,43 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
             </button>
           );
         })}
+      </div>
+
+      {/* Univers pills */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+        <button
+          onClick={() => handleFilters({ ...filters, univers: '' })}
+          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            !filters.univers
+              ? 'bg-slate-700 text-white'
+              : 'text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-neutral-900'
+          }`}
+        >
+          Tous les univers
+        </button>
+        {Object.entries(UNIVERS_LABELS).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => handleFilters({ ...filters, univers: key })}
+            className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+              filters.univers === key
+                ? 'bg-slate-700 text-white'
+                : 'text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-neutral-900'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <button
+          onClick={() => handleFilters({ ...filters, nouveautes: !filters.nouveautes })}
+          className={`flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
+            filters.nouveautes
+              ? 'bg-amber-600 text-white'
+              : 'text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-neutral-900'
+          }`}
+        >
+          Nouveautés
+        </button>
       </div>
 
       {/* Recherche + Filtres */}
