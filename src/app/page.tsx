@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OpenChatButton } from '@/components/home/OpenChatButton';
 
 const CATEGORIES = [
   { label: 'T-shirts', href: '/catalogue?categorie=T-shirts' },
@@ -49,12 +50,7 @@ export default function Home() {
             >
               Voir le catalogue
             </Link>
-            <Link
-              href="/configurateur"
-              className="px-8 py-3.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
-            >
-              Configurer mon pack
-            </Link>
+            <OpenChatButton />
           </div>
         </div>
       </section>

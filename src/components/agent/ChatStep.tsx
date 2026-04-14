@@ -22,23 +22,49 @@ interface Message {
 interface ChatStepProps {
   context: any;
   initialMessages?: Message[];
+  onRequestClose?: () => void;
 }
 
-export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+const SESSION_KEY = 'toque2me_chat_state';
+
+function loadChatState(): { messages: Message[]; qualifCtx: Partial<QualificationContext>; stepIndex: number; qualifDone: boolean } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function saveChatState(messages: Message[], qualifCtx: Partial<QualificationContext>, stepIndex: number, qualifDone: boolean) {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify({ messages, qualifCtx, stepIndex, qualifDone }));
+  } catch { /* quota exceeded */ }
+}
+
+export function ChatStep({ context, initialMessages = [], onRequestClose }: ChatStepProps) {
+  // Restore from cache
+  const cached = typeof window !== 'undefined' ? loadChatState() : null;
+
+  const [messages, setMessages] = useState<Message[]>(cached?.messages || initialMessages);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Qualification state
-  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>({});
+  // Qualification state — restored from cache
+  const [qualifCtx, setQualifCtx] = useState<Partial<QualificationContext>>(cached?.qualifCtx || {});
   const steps = useMemo(() => buildSteps(qualifCtx), [qualifCtx]);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [qualifDone, setQualifDone] = useState(false);
+  const [stepIndex, setStepIndex] = useState(cached?.stepIndex || 0);
+  const [qualifDone, setQualifDone] = useState(cached?.qualifDone || false);
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const [briefText, setBriefText] = useState('');
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
+
+  // Persist state on changes
+  useEffect(() => {
+    saveChatState(messages, qualifCtx, stepIndex, qualifDone);
+  }, [messages, qualifCtx, stepIndex, qualifDone]);
 
   const questionRef = useRef<HTMLDivElement>(null);
 
@@ -300,7 +326,7 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 mb-4 max-h-[500px]">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto space-y-4 pb-2 max-h-[500px]">
         {/* Messages */}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -347,115 +373,123 @@ export function ChatStep({ context, initialMessages = [] }: ChatStepProps) {
 
             {/* Brief textarea */}
             {currentStep.type === 'brief' && (
-              <div className="pl-2 space-y-2">
+              <div className="pl-2">
                 <textarea
                   value={briefText}
                   onChange={(e) => setBriefText(e.target.value)}
-                  placeholder="200 polos marine brodés pour un salon dans 3 semaines..."
+                  placeholder="On ouvre un restaurant et il faut habiller 15 personnes..."
                   rows={3}
                   className="w-full px-4 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 resize-none"
                 />
-                <button
-                  onClick={() => {
-                    if (!briefText.trim()) return;
-                    setMessages(prev => [...prev, { role: 'user', content: briefText.trim() }]);
-                    const newCtx = { ...qualifCtx, brief_text: briefText.trim(), approche: 'idee' as string };
-                    setQualifCtx(newCtx);
-                    finishQualification(newCtx);
-                  }}
-                  disabled={!briefText.trim()}
-                  className="px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 disabled:opacity-30 transition-colors"
-                >
-                  Envoyer
-                </button>
               </div>
             )}
 
             {/* Boutons single/multi */}
             {currentStep.type !== 'brief' && (
-              <>
-                <div className="flex flex-wrap gap-2 pl-2">
-                  {currentOptions.map((opt) => {
-                    const isMulti = currentStep.type === 'multi';
-                    const isSelected = isMulti && multiSelection.includes(opt.value);
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => {
-                          if (isMulti) {
-                            setMultiSelection(prev =>
-                              prev.includes(opt.value)
-                                ? prev.filter(v => v !== opt.value)
-                                : [...prev, opt.value]
-                            );
-                          } else {
-                            handleChoice(currentStep, opt);
-                          }
-                        }}
-                        className={`px-4 py-2 text-sm font-medium border rounded-full transition-colors ${
-                          isSelected
-                            ? 'border-neutral-900 bg-neutral-900 text-white'
-                            : 'border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
-                        }`}
-                      >
-                        {opt.emoji && <span className="mr-1.5">{opt.emoji}</span>}
-                        {opt.label}
-                        {opt.sub && <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{opt.sub}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                {/* Multi-select confirm */}
-                {currentStep.type === 'multi' && multiSelection.length > 0 && (
-                  <button
-                    onClick={() => handleMultiConfirm(currentStep)}
-                    className="ml-2 px-5 py-2 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors"
-                  >
-                    Valider ({multiSelection.length})
-                  </button>
-                )}
-              </>
+              <div className="flex flex-wrap gap-2 pl-2">
+                {currentOptions.map((opt) => {
+                  const isMulti = currentStep.type === 'multi';
+                  const isSelected = isMulti && multiSelection.includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        if (isMulti) {
+                          setMultiSelection(prev =>
+                            prev.includes(opt.value)
+                              ? prev.filter(v => v !== opt.value)
+                              : [...prev, opt.value]
+                          );
+                        } else {
+                          handleChoice(currentStep, opt);
+                        }
+                      }}
+                      className={`px-4 py-2 text-sm font-medium border rounded-full transition-colors ${
+                        isSelected
+                          ? 'border-neutral-900 bg-neutral-900 text-white'
+                          : 'border-neutral-200 hover:border-neutral-900 hover:bg-neutral-50'
+                      }`}
+                    >
+                      {opt.emoji && <span className="mr-1.5">{opt.emoji}</span>}
+                      {opt.label}
+                      {opt.sub && <span className="block text-[10px] text-slate-400 font-normal mt-0.5">{opt.sub}</span>}
+                    </button>
+                  );
+                })}
+              </div>
             )}
-          </div>
-        )}
-
-        {/* Bouton devis */}
-        {!streaming && extractedRefs.length > 0 && (
-          <div className="flex justify-center py-2">
-            <Link
-              href={`/calculateur?refs=${extractedRefs.join(',')}`}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors shadow-sm"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-              Chiffrer cette sélection ({extractedRefs.length} produit{extractedRefs.length > 1 ? 's' : ''})
-            </Link>
           </div>
         )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* Free text input (after qualification) */}
-      {qualifDone && (
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-            placeholder="Ajuster, comparer, demander une alternative..."
-            disabled={streaming}
-            className="flex-1 px-4 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 disabled:opacity-50"
-          />
-          <MicButton onTranscript={handleMicTranscript} />
+      {/* ── Zone sticky bottom : boutons toujours visibles au-dessus du clavier ── */}
+      <div className="flex-shrink-0 border-t border-neutral-100 pt-2 space-y-2 bg-white">
+        {/* Bouton validation multi-select */}
+        {currentStep?.type === 'multi' && multiSelection.length > 0 && !streaming && (
           <button
-            onClick={send}
-            disabled={streaming || !input.trim()}
-            className="px-4 py-2.5 bg-neutral-900 text-white rounded-xl text-sm font-medium hover:bg-neutral-800 disabled:opacity-30 transition-colors"
+            onClick={() => handleMultiConfirm(currentStep)}
+            className="w-full px-5 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors"
+          >
+            Valider ({multiSelection.length} sélectionné{multiSelection.length > 1 ? 's' : ''})
+          </button>
+        )}
+
+        {/* Bouton envoi brief */}
+        {currentStep?.type === 'brief' && !streaming && (
+          <button
+            onClick={() => {
+              if (!briefText.trim()) return;
+              setMessages(prev => [...prev, { role: 'user', content: briefText.trim() }]);
+              const newCtx = { ...qualifCtx, brief_text: briefText.trim(), approche: 'guide' as string };
+              setQualifCtx(newCtx);
+              finishQualification(newCtx);
+            }}
+            disabled={!briefText.trim()}
+            className="w-full px-5 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 disabled:opacity-30 transition-colors"
           >
             Envoyer
           </button>
-        </div>
-      )}
+        )}
+
+        {/* Bouton devis */}
+        {!streaming && extractedRefs.length > 0 && (
+          <Link
+            href={`/calculateur?refs=${extractedRefs.join(',')}`}
+            onClick={() => {
+              // Sur mobile, fermer le chat pour voir le résultat
+              if (onRequestClose && window.innerWidth < 640) onRequestClose();
+            }}
+            className="flex items-center justify-center gap-2 w-full px-5 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Chiffrer cette sélection ({extractedRefs.length} produit{extractedRefs.length > 1 ? 's' : ''})
+          </Link>
+        )}
+
+        {/* Free text input (after qualification) */}
+        {qualifDone && (
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
+              placeholder="Ajuster, comparer, demander une alternative..."
+              disabled={streaming}
+              className="flex-1 px-4 py-2.5 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900 disabled:opacity-50"
+            />
+            <MicButton onTranscript={handleMicTranscript} />
+            <button
+              onClick={send}
+              disabled={streaming || !input.trim()}
+              className="px-4 py-2.5 bg-neutral-900 text-white rounded-xl text-sm font-medium hover:bg-neutral-800 disabled:opacity-30 transition-colors"
+            >
+              Envoyer
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

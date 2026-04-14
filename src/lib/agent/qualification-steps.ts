@@ -198,34 +198,34 @@ export const STATIC_STEPS: QualificationStep[] = [
     question: 'Vous avez déjà une idée de ce qu\'il vous faut ?',
     type: 'single',
     options: [
-      { value: 'idee',  label: 'Oui, j\'ai une idée',    emoji: '💡', sub: 'Décrivez votre besoin' },
-      { value: 'guide', label: 'Non, guidez-moi',         emoji: '🧭', sub: 'On vous propose les meilleures options' },
+      { value: 'idee',  label: 'Oui, je sais ce qu\'il me faut', emoji: '💡', sub: 'On passe aux détails textile' },
+      { value: 'guide', label: 'Non, j\'ai besoin de conseils',   emoji: '🧭', sub: 'Décrivez votre projet, on vous guide' },
     ],
-    next: (value) => value === 'idee' ? 'brief' : 'typologies',
+    next: (value) => value === 'idee' ? 'typologies' : 'brief',
   },
 
-  // ── 2bis. BRIEF LIBRE ─────────────────────────────────────────────────────
+  // ── 2bis. BRIEF LIBRE (pour ceux qui ne savent pas) ───────────────────────
 
   {
     id: 'brief',
-    question: 'Décrivez votre besoin en quelques mots :',
-    sous_titre: 'Ex: "200 polos marine brodés pour un salon dans 3 semaines"',
+    question: 'Décrivez votre projet en quelques mots :',
+    sous_titre: 'Ex: "On ouvre un restaurant et il faut habiller 15 personnes" — on s\'occupe du reste !',
     type: 'brief',
     options: [], // pas d'options, c'est un textarea
-    condition: (ctx) => ctx.approche === 'idee',
+    condition: (ctx) => ctx.approche === 'guide',
     next: () => null, // fin du flow → extraction par l'IA
   },
 
-  // ── 3. PIÈCES ─────────────────────────────────────────────────────────────
+  // ── 3. PIÈCES (pour ceux qui savent) ──────────────────────────────────────
 
   {
     id: 'typologies',
-    question: 'Qu\'est-ce qui vous ferait plaisir ?',
+    question: 'Qu\'est-ce qui vous intéresse ?',
     sous_titre: 'Sélectionnez une ou plusieurs pièces.',
     type: 'multi',
     options: [], // rempli dynamiquement via getTypologyOptions()
     preselect: (ctx) => PIECES_PAR_OCCASION[ctx.occasion || ''] || [],
-    condition: (ctx) => ctx.approche !== 'idee',
+    condition: (ctx) => ctx.approche !== 'guide',
   },
 
   // ── Les étapes 4 (style+couleur par pièce) sont générées dynamiquement ──
@@ -311,7 +311,7 @@ export function buildSteps(ctx: Partial<QualificationContext>): QualificationSte
   const steps = [...STATIC_STEPS];
 
   // Si des typologies sont sélectionnées, insérer les étapes par pièce
-  if (ctx.typologies && ctx.typologies.length > 0 && ctx.approche !== 'idee') {
+  if (ctx.typologies && ctx.typologies.length > 0 && ctx.approche !== 'guide') {
     steps.push(...generatePieceSteps(ctx.typologies));
   }
 

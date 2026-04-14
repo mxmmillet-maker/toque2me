@@ -1,10 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChatStep } from './ChatStep';
+
+// Event system pour piloter le chat depuis l'extérieur (HP, nav, etc.)
+const OPEN_EVENT = 'toque2me:chat:open';
+const CLOSE_EVENT = 'toque2me:chat:close';
+
+export function openChat() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
+
+export function closeChat() {
+  window.dispatchEvent(new Event(CLOSE_EVENT));
+}
 
 export function ChatBubble() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+    window.addEventListener(OPEN_EVENT, handleOpen);
+    window.addEventListener(CLOSE_EVENT, handleClose);
+    return () => {
+      window.removeEventListener(OPEN_EVENT, handleOpen);
+      window.removeEventListener(CLOSE_EVENT, handleClose);
+    };
+  }, []);
+
+  const handleClose = useCallback(() => setOpen(false), []);
 
   return (
     <>
@@ -33,7 +58,7 @@ export function ChatBubble() {
             <p className="text-xs text-neutral-400">Textile & objets personnalisés</p>
           </div>
           <div className="flex-1 px-4 py-4 overflow-hidden">
-            <ChatStep context={{}} />
+            <ChatStep context={{}} onRequestClose={handleClose} />
           </div>
         </div>
       )}
