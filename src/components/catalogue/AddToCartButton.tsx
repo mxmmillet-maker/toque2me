@@ -17,13 +17,14 @@ export function AddToCartButton({ ref_fournisseur, nom, image_url, prix_from, ca
   const [qty, setQty] = useState(10);
   const [selectedCouleur, setSelectedCouleur] = useState<string | undefined>();
   const [selectedHexa, setSelectedHexa] = useState<string | undefined>();
+  const [selectedImage, setSelectedImage] = useState<string | undefined>();
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
     add({
       ref: ref_fournisseur,
       nom,
-      image_url,
+      image_url: selectedImage || image_url,
       couleur: selectedCouleur,
       couleur_hexa: selectedHexa,
       qty,
@@ -44,7 +45,7 @@ export function AddToCartButton({ ref_fournisseur, nom, image_url, prix_from, ca
             {couleurs.slice(0, 12).map((c) => (
               <button
                 key={c.nom}
-                onClick={() => { setSelectedCouleur(c.nom); setSelectedHexa(c.hexa); }}
+                onClick={() => { setSelectedCouleur(c.nom); setSelectedHexa(c.hexa); setSelectedImage(c.image); }}
                 title={c.nom}
                 className={`w-7 h-7 rounded-full border-2 transition-all ${
                   selectedCouleur === c.nom
