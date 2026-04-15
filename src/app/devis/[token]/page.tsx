@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { PayButton } from '@/components/devis/PayButton';
 
 export default async function DevisPublicPage({ params }: { params: { token: string } }) {
   const { data: quote } = await supabaseAdmin
@@ -74,13 +75,25 @@ export default async function DevisPublicPage({ params }: { params: { token: str
 
           {/* CTA */}
           <div className="px-6 py-5 bg-neutral-50 border-t border-neutral-100 text-center space-y-3">
-            <a
-              href={`/api/devis/pdf?token=${params.token}`}
-              target="_blank"
-              className="inline-flex items-center px-6 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
-            >
-              Télécharger le PDF
-            </a>
+            {quote.statut === 'paye' ? (
+              <div className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-50 text-emerald-700 text-sm font-medium rounded-lg border border-emerald-200">
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Devis payé
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <PayButton shareToken={params.token} />
+                <a
+                  href={`/api/devis/pdf?token=${params.token}`}
+                  target="_blank"
+                  className="inline-flex items-center px-6 py-2.5 border border-neutral-200 text-neutral-700 text-sm font-medium rounded-lg hover:bg-neutral-100 transition-colors"
+                >
+                  Télécharger le PDF
+                </a>
+              </div>
+            )}
             <p className="text-xs text-neutral-400">
               Vous aussi, configurez vos textiles pro sur{' '}
               <Link href="/configurateur" className="text-neutral-700 underline underline-offset-2">Toque2Me</Link>
