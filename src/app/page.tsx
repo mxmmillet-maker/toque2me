@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { OpenChatButton } from '@/components/home/OpenChatButton';
+import { OpenChatButtonLight } from '@/components/home/OpenChatButtonLight';
 
 const CATEGORIES = [
   { label: 'T-shirts', href: '/catalogue?categorie=T-shirts' },
@@ -20,10 +21,10 @@ const METIERS = [
   { icon: '🏢', label: 'Entreprises', sub: 'T-shirts, sweats, polos — à votre image', href: '/configurateur' },
 ];
 
-const CHIFFRES = [
-  { value: '2 937', label: 'produits disponibles' },
-  { value: '5', label: 'fournisseurs référencés' },
-  { value: '3 min', label: 'pour un devis PDF' },
+const STEPS = [
+  { num: '30s', label: 'Configurez', desc: '4 questions pour cibler vos besoins. Pas de formulaire, pas d\'attente.' },
+  { num: '10s', label: 'Recevez votre sélection', desc: 'Produits adaptés à votre métier, prix dégressifs affichés, devis PDF instantané.' },
+  { num: '1 clic', label: 'Commandez & payez', desc: 'Paiement sécurisé en ligne. On lance la production et le marquage.' },
 ];
 
 export default function Home() {
@@ -31,26 +32,48 @@ export default function Home() {
     <main className="min-h-screen bg-white">
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-slate-50/80 to-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-20 sm:pb-24 text-center">
-          <p className="text-sm font-medium text-slate-400 uppercase tracking-widest mb-5">
-            Toque2Me
-          </p>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-32 pb-16 sm:pb-20 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-full mb-6 border border-emerald-200">
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            Devis en 30 secondes — Paiement en ligne
+          </div>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-neutral-900 tracking-tight leading-[1.08]">
-            Vos vêtements pro,<br />
-            conformes et à vos couleurs
+            Vos vêtements pro<br />
+            personnalisés en 3 clics
           </h1>
           <p className="mt-6 text-lg sm:text-xl text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Devis en 3 minutes — Conformité HACCP, EN 1149, EN ISO 20471 incluse.
-            Personnalisés avec votre logo.
+            Configurez, recevez votre devis, payez. Pas de va-et-vient,
+            pas de délai. Votre commande part en production immédiatement.
           </p>
-          <div className="mt-12 flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+            <OpenChatButton />
             <Link
               href="/catalogue"
-              className="px-8 py-3.5 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors shadow-sm"
+              className="px-8 py-3.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
             >
               Voir le catalogue
             </Link>
-            <OpenChatButton />
+          </div>
+        </div>
+      </section>
+
+      {/* Process en 3 étapes */}
+      <section className="border-y border-slate-100 bg-neutral-900 text-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
+          <p className="text-center text-xs font-medium uppercase tracking-widest text-neutral-400 mb-10">
+            Du besoin à la commande
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {STEPS.map((s, i) => (
+              <div key={i} className="text-center sm:text-left">
+                <p className="text-3xl font-extrabold text-white tabular-nums mb-2">{s.num}</p>
+                <h3 className="text-sm font-semibold text-white mb-1">{s.label}</h3>
+                <p className="text-sm text-neutral-400 leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <OpenChatButtonLight />
           </div>
         </div>
       </section>
@@ -80,6 +103,9 @@ export default function Home() {
 
       {/* Entrées métier */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
+        <p className="text-center text-xs font-medium uppercase tracking-widest text-slate-400 mb-8">
+          Votre secteur, nos solutions
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {METIERS.map((m) => (
             <Link
@@ -99,42 +125,31 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Chiffres clés */}
+      {/* Réassurance */}
       <section className="border-t border-slate-100 bg-slate-50/70">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
-          <div className="grid grid-cols-3 gap-8 text-center">
-            {CHIFFRES.map((c) => (
-              <div key={c.label}>
-                <p className="text-4xl sm:text-5xl font-extrabold text-neutral-900 tabular-nums tracking-tight">
-                  {c.value}
-                </p>
-                <p className="mt-2 text-sm text-slate-500">{c.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Réassurance */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-900 mb-2">Conformité garantie</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Chaque produit est vérifié selon les normes de votre secteur. HACCP, EN 1149, EN ISO 20471 — aucun compromis.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-900 mb-2">Personnalisation complète</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Logo brodé ou imprimé, choix des coloris, mix de pièces sur-mesure pour chaque membre de votre équipe.
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-900 mb-2">Prix dégressifs transparents</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              Grilles tarifaires visibles, prix qui baissent avec la quantité, livraison offerte dès 150 € HT.
-            </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 mb-2">2 937</p>
+              <h3 className="text-sm font-semibold text-neutral-900 mb-1">produits disponibles</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                5 fournisseurs référencés. T-shirts à parkas, tabliers à EPI.
+              </p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 mb-2">100%</p>
+              <h3 className="text-sm font-semibold text-neutral-900 mb-1">conforme</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                HACCP, EN ISO 20471, EN 1149 — chaque produit vérifié pour votre secteur.
+              </p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-neutral-900 mb-2">0 €</p>
+              <h3 className="text-sm font-semibold text-neutral-900 mb-1">de frais de port dès 150 € HT</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Prix dégressifs transparents. Broderie, sérigraphie, DTF — tout inclus dans le devis.
+              </p>
+            </div>
           </div>
         </div>
       </section>

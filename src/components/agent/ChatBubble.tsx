@@ -17,12 +17,25 @@ export function closeChat() {
 
 export function ChatBubble() {
   const [open, setOpen] = useState(false);
+  const [showTeaser, setShowTeaser] = useState(false);
+  const [teaserDismissed, setTeaserDismissed] = useState(false);
 
   useEffect(() => {
-    const handleOpen = () => setOpen(true);
+    const handleOpen = () => { setOpen(true); setShowTeaser(false); setTeaserDismissed(true); };
     const handleClose = () => setOpen(false);
     window.addEventListener(OPEN_EVENT, handleOpen);
     window.addEventListener(CLOSE_EVENT, handleClose);
+
+    // Teaser : afficher après 4s, seulement 1 fois par session
+    const alreadyShown = sessionStorage.getItem('toque2me_teaser_shown');
+    if (!alreadyShown) {
+      const timer = setTimeout(() => {
+        setShowTeaser(true);
+        sessionStorage.setItem('toque2me_teaser_shown', '1');
+      }, 4000);
+      return () => { clearTimeout(timer); window.removeEventListener(OPEN_EVENT, handleOpen); window.removeEventListener(CLOSE_EVENT, handleClose); };
+    }
+
     return () => {
       window.removeEventListener(OPEN_EVENT, handleOpen);
       window.removeEventListener(CLOSE_EVENT, handleClose);
@@ -31,11 +44,37 @@ export function ChatBubble() {
 
   const handleClose = useCallback(() => setOpen(false), []);
 
+  const dismissTeaser = () => { setShowTeaser(false); setTeaserDismissed(true); };
+
   return (
     <>
+      {/* Teaser message */}
+      {showTeaser && !open && !teaserDismissed && (
+        <div className="fixed bottom-24 right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="bg-white border border-neutral-200 rounded-2xl shadow-lg px-4 py-3 max-w-[260px] relative">
+            <button
+              onClick={dismissTeaser}
+              className="absolute -top-2 -right-2 w-5 h-5 bg-neutral-200 text-neutral-500 rounded-full flex items-center justify-center text-xs hover:bg-neutral-300"
+            >
+              x
+            </button>
+            <p className="text-sm font-medium text-neutral-900 mb-1">Besoin d'aide pour choisir ?</p>
+            <p className="text-xs text-neutral-500 mb-2">Répondez à 4 questions, recevez votre sélection en 30 secondes.</p>
+            <button
+              onClick={() => { setShowTeaser(false); setTeaserDismissed(true); setOpen(true); }}
+              className="text-xs font-medium text-neutral-900 underline underline-offset-2"
+            >
+              C'est parti
+            </button>
+            {/* Triangle pointer */}
+            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white border-b border-r border-neutral-200 rotate-45" />
+          </div>
+        </div>
+      )}
+
       {/* Bubble button */}
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setShowTeaser(false); setTeaserDismissed(true); }}
         className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-neutral-900 text-white rounded-full shadow-lg hover:bg-neutral-800 transition-all flex items-center justify-center"
         aria-label="Assistant Toque2Me"
       >

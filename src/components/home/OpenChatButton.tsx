@@ -6,9 +6,9 @@ export function OpenChatButton() {
   return (
     <button
       onClick={() => openChat()}
-      className="px-8 py-3.5 border border-slate-200 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-50 transition-colors"
+      className="px-8 py-3.5 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors shadow-sm border border-neutral-800"
     >
-      Configurer mon pack
+      Configurer mon pack — 30s
     </button>
   );
 }
