@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImper
 import Link from 'next/link';
 import { MicButton } from './MicButton';
 import { ChatMarkdown } from './ChatMarkdown';
+import { useCart } from '@/lib/cart';
 import {
   buildSteps,
   qualificationToPromptContext,
@@ -64,6 +65,9 @@ export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatS
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const [briefText, setBriefText] = useState('');
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
+  const [addedToCart, setAddedToCart] = useState(false);
+
+  const { add: addToCart } = useCart();
 
   // Reset function
   const resetChat = useCallback(() => {
@@ -74,6 +78,7 @@ export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatS
     setMultiSelection([]);
     setBriefText('');
     setInput('');
+    setAddedToCart(false);
     sessionStorage.removeItem(SESSION_KEY);
   }, []);
 
@@ -471,19 +476,45 @@ export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatS
           </button>
         )}
 
-        {/* Bouton devis */}
+        {/* Actions sélection */}
         {!streaming && extractedRefs.length > 0 && (
-          <Link
-            href={`/calculateur?refs=${extractedRefs.join(',')}`}
-            onClick={() => {
-              // Sur mobile, fermer le chat pour voir le résultat
-              if (onRequestClose && window.innerWidth < 640) onRequestClose();
-            }}
-            className="flex items-center justify-center gap-2 w-full px-5 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-xl hover:bg-neutral-800 transition-colors shadow-sm"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Chiffrer cette sélection ({extractedRefs.length} produit{extractedRefs.length > 1 ? 's' : ''})
-          </Link>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                for (const ref of extractedRefs) {
+                  addToCart({ ref, nom: ref, qty: 10 });
+                }
+                setAddedToCart(true);
+                setTimeout(() => setAddedToCart(false), 2500);
+              }}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors shadow-sm ${
+                addedToCart
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-neutral-900 text-white hover:bg-neutral-800'
+              }`}
+            >
+              {addedToCart ? (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                  Ajouté
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                  Ajouter au panier ({extractedRefs.length})
+                </>
+              )}
+            </button>
+            <Link
+              href="/panier"
+              onClick={() => {
+                if (onRequestClose && window.innerWidth < 640) onRequestClose();
+              }}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium border border-neutral-200 text-neutral-700 rounded-xl hover:bg-neutral-50 transition-colors"
+            >
+              Voir le panier
+            </Link>
+          </div>
         )}
 
         {/* Free text input (after qualification) */}
