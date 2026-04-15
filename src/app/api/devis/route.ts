@@ -176,6 +176,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // ── Notifier l'admin par email (fire & forget) ──
+  notifyAdmin(quote.id, lignes, totalHt, totalAvecPort).catch(() => {});
+
   return NextResponse.json({
     id: quote.id,
     share_token: quote.share_token,
@@ -187,5 +190,78 @@ export async function POST(req: NextRequest) {
     total_avec_port_ht: totalAvecPort,
     tva: Math.ceil(totalAvecPort * 0.2 * 100) / 100,
     total_ttc: Math.ceil(totalAvecPort * 1.2 * 100) / 100,
+  });
+}
+
+// ─── Email notification admin ───────────────────────────────────────────────
+
+async function notifyAdmin(quoteId: string, lignes: LigneDevis[], totalHt: number, totalAvecPort: number) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const adminEmail = process.env.ADMIN_EMAIL || 'contact@toque2me.com';
+  if (!apiKey) return;
+
+  const { Resend } = await import('resend');
+  const resend = new Resend(apiKey);
+
+  const lignesHtml = lignes.map(l =>
+    `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;">${l.nom}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:center;">${l.qty}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">${l.prix_unitaire_ht.toFixed(2)} €</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">${l.total_ligne_ht.toFixed(2)} €</td>
+    </tr>`
+  ).join('');
+
+  await resend.emails.send({
+    from: 'Toque2Me <devis@toque2me.com>',
+    to: adminEmail,
+    subject: `Nouveau devis #${quoteId.slice(0, 8)} — ${totalAvecPort.toFixed(2)} € HT`,
+    html: `
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
+        <tr><td style="background:#171717;padding:20px 24px;">
+          <h1 style="margin:0;color:#fff;font-size:18px;">Nouveau devis</h1>
+        </td></tr>
+        <tr><td style="padding:24px;">
+          <p style="margin:0 0 16px;font-size:14px;color:#333;">
+            Un nouveau devis vient d'être généré sur Toque2Me.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#333;">
+            <thead>
+              <tr style="background:#f9fafb;">
+                <th style="padding:8px 12px;text-align:left;">Produit</th>
+                <th style="padding:8px 12px;text-align:center;">Qté</th>
+                <th style="padding:8px 12px;text-align:right;">PU HT</th>
+                <th style="padding:8px 12px;text-align:right;">Total</th>
+              </tr>
+            </thead>
+            <tbody>${lignesHtml}</tbody>
+            <tfoot>
+              <tr style="font-weight:bold;">
+                <td colspan="3" style="padding:10px 12px;text-align:right;">Total HT</td>
+                <td style="padding:10px 12px;text-align:right;">${totalHt.toFixed(2)} €</td>
+              </tr>
+              <tr style="font-weight:bold;font-size:15px;">
+                <td colspan="3" style="padding:10px 12px;text-align:right;">Total TTC</td>
+                <td style="padding:10px 12px;text-align:right;">${(totalAvecPort * 1.2).toFixed(2)} €</td>
+              </tr>
+            </tfoot>
+          </table>
+          <p style="margin:20px 0 0;font-size:13px;">
+            <a href="https://toque2me.com/admin?key=${process.env.ADMIN_SECRET}" style="color:#171717;font-weight:bold;">
+              Voir dans le back-office →
+            </a>
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
   });
 }

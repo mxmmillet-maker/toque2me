@@ -2,41 +2,52 @@ import { redirect } from 'next/navigation';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
-async function getStats() {
-  const [products, activeProducts, quotes, syncLogs] = await Promise.all([
+async function getAdminData() {
+  const [products, activeProducts, quotesCount, syncLogs, margins, quotes, clients] = await Promise.all([
     supabaseAdmin.from('products').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('products').select('*', { count: 'exact', head: true }).eq('actif', true),
     supabaseAdmin.from('quotes').select('*', { count: 'exact', head: true }),
     supabaseAdmin.from('sync_logs').select('*').order('created_at', { ascending: false }).limit(20),
+    supabaseAdmin.from('margins').select('*').order('fournisseur'),
+    supabaseAdmin
+      .from('quotes')
+      .select('id, created_at, statut, total_ht, share_token, lignes, client_id, clients(email, nom, entreprise)')
+      .order('created_at', { ascending: false })
+      .limit(100),
+    supabaseAdmin
+      .from('clients')
+      .select('id, email, nom, entreprise, secteur, telephone, siret, created_at')
+      .order('created_at', { ascending: false })
+      .limit(200),
   ]);
-
-  const { data: margins } = await supabaseAdmin.from('margins').select('*').order('fournisseur');
 
   return {
     totalProducts: products.count ?? 0,
     activeProducts: activeProducts.count ?? 0,
-    totalQuotes: quotes.count ?? 0,
+    totalQuotes: quotesCount.count ?? 0,
+    totalClients: clients.data?.length ?? 0,
     syncLogs: syncLogs.data ?? [],
-    margins: margins ?? [],
+    margins: margins.data ?? [],
+    quotes: quotes.data ?? [],
+    clients: clients.data ?? [],
   };
 }
 
 export default async function AdminPage({ searchParams }: { searchParams: { key?: string } }) {
-  // Protection admin — accès via /admin?key=<ADMIN_SECRET>
   if (searchParams.key !== process.env.ADMIN_SECRET) {
     redirect('/');
   }
 
-  const stats = await getStats();
+  const data = await getAdminData();
 
   return (
     <main className="min-h-screen bg-neutral-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-neutral-900">Back-office Toque2Me</h1>
-          <p className="text-sm text-neutral-500">Pilotage catalogue, marges et workers</p>
+          <p className="text-sm text-neutral-500">Gestion devis, clients, marges et workers</p>
         </div>
-        <AdminDashboard stats={stats} />
+        <AdminDashboard data={data} />
       </div>
     </main>
   );
