@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { PayButton } from '@/components/devis/PayButton';
+import { PackPreview } from '@/components/devis/PackPreview';
 
 export default async function DevisPublicPage({ params }: { params: { token: string } }) {
   const { data: quote } = await supabaseAdmin
@@ -93,6 +94,9 @@ export default async function DevisPublicPage({ params }: { params: { token: str
                   Télécharger le PDF
                 </a>
               </div>
+            )}
+            {lignes.length > 0 && (
+              <PackPreview lignes={lignes} />
             )}
             <p className="text-xs text-neutral-400">
               Vous aussi, configurez vos textiles pro sur{' '}
