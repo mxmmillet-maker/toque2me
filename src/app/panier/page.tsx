@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function PanierPage() {
-  const { items, groupes, count, remove, updateQty, moveToGroupe, addGroupe, removeGroupe, renameGroupe, clear } = useCart();
+  const { items, groupes, count, remove, updateQty, updateCouleur, moveToGroupe, addGroupe, removeGroupe, renameGroupe, clear } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -214,6 +214,28 @@ export default function PanierPage() {
                                 </span>
                               )}
                             </p>
+
+                            {/* Sélecteur couleur inline */}
+                            {item.couleurs_dispo && item.couleurs_dispo.length > 1 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {item.couleurs_dispo.slice(0, 10).map((c) => (
+                                  <button
+                                    key={c.nom}
+                                    onClick={() => updateCouleur(item.ref, item.couleur, c.nom, c.hexa, c.image)}
+                                    title={c.nom}
+                                    className={`w-5 h-5 rounded-full border transition-all ${
+                                      item.couleur === c.nom
+                                        ? 'border-neutral-900 ring-1 ring-neutral-900 ring-offset-1 scale-110'
+                                        : 'border-neutral-200 hover:border-neutral-400'
+                                    }`}
+                                    style={{ backgroundColor: c.hexa || '#ccc' }}
+                                  />
+                                ))}
+                                {item.couleurs_dispo.length > 10 && (
+                                  <span className="text-[10px] text-neutral-400 self-center ml-1">+{item.couleurs_dispo.length - 10}</span>
+                                )}
+                              </div>
+                            )}
 
                             <div className="flex items-center gap-3 mt-2">
                               {/* Quantité */}

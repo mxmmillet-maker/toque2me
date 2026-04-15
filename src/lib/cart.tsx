@@ -4,6 +4,12 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+export interface CartItemColor {
+  nom: string;
+  hexa: string;
+  image?: string;
+}
+
 export interface CartItem {
   ref: string;
   nom: string;
@@ -14,6 +20,7 @@ export interface CartItem {
   prix_from?: number;
   categorie?: string;
   groupe: string; // nom du sous-panier
+  couleurs_dispo?: CartItemColor[]; // pour changer la couleur depuis le panier
 }
 
 interface CartContextValue {
@@ -23,6 +30,7 @@ interface CartContextValue {
   add: (item: Omit<CartItem, 'groupe'> & { groupe?: string }) => void;
   remove: (ref: string, couleur?: string) => void;
   updateQty: (ref: string, couleur: string | undefined, qty: number) => void;
+  updateCouleur: (ref: string, oldCouleur: string | undefined, newCouleur: string, newHexa: string, newImage?: string) => void;
   moveToGroupe: (ref: string, couleur: string | undefined, groupe: string) => void;
   addGroupe: (name: string) => void;
   removeGroupe: (name: string) => void;
@@ -122,6 +130,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateCouleur = useCallback((ref: string, oldCouleur: string | undefined, newCouleur: string, newHexa: string, newImage?: string) => {
+    const key = itemKey(ref, oldCouleur);
+    setItems(prev => prev.map(i =>
+      itemKey(i.ref, i.couleur) === key
+        ? { ...i, couleur: newCouleur, couleur_hexa: newHexa, image_url: newImage || i.image_url }
+        : i
+    ));
+  }, []);
+
   const moveToGroupe = useCallback((ref: string, couleur: string | undefined, groupe: string) => {
     const key = itemKey(ref, couleur);
     setItems(prev => prev.map(i =>
@@ -157,7 +174,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const count = items.reduce((sum, i) => sum + i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, groupes, count, add, remove, updateQty, moveToGroupe, addGroupe, removeGroupe, renameGroupe, clear }}>
+    <CartContext.Provider value={{ items, groupes, count, add, remove, updateQty, updateCouleur, moveToGroupe, addGroupe, removeGroupe, renameGroupe, clear }}>
       {children}
     </CartContext.Provider>
   );

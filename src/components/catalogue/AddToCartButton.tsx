@@ -30,6 +30,7 @@ export function AddToCartButton({ ref_fournisseur, nom, image_url, prix_from, ca
       qty,
       prix_from,
       categorie,
+      couleurs_dispo: couleurs?.map(c => ({ nom: c.nom, hexa: c.hexa, image: c.image })),
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
