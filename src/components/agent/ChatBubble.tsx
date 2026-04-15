@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { ChatStep } from './ChatStep';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ChatStep, type ChatStepHandle } from './ChatStep';
 
 // Event system pour piloter le chat depuis l'extérieur (HP, nav, etc.)
 const OPEN_EVENT = 'toque2me:chat:open';
@@ -42,7 +42,9 @@ export function ChatBubble() {
     };
   }, []);
 
+  const chatRef = useRef<ChatStepHandle>(null);
   const handleClose = useCallback(() => setOpen(false), []);
+  const handleReset = useCallback(() => { chatRef.current?.reset(); }, []);
 
   const dismissTeaser = () => { setShowTeaser(false); setTeaserDismissed(true); };
 
@@ -92,12 +94,21 @@ export function ChatBubble() {
       {/* Chat panel */}
       {open && (
         <div className="fixed bottom-24 right-4 left-4 sm:left-auto sm:right-6 z-50 sm:w-[380px] h-[70vh] sm:h-[500px] bg-white border border-neutral-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-neutral-100 flex-shrink-0">
-            <h3 className="text-sm font-semibold text-neutral-900">Assistant Toque2Me</h3>
-            <p className="text-xs text-neutral-400">Textile & objets personnalisés</p>
+          <div className="px-5 py-3 border-b border-neutral-100 flex-shrink-0 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-900">Assistant Toque2Me</h3>
+              <p className="text-xs text-neutral-400">Textile & objets personnalisés</p>
+            </div>
+            <button
+              onClick={handleReset}
+              className="text-[10px] text-neutral-400 hover:text-neutral-900 px-2 py-1 border border-neutral-200 rounded-md hover:bg-neutral-50 transition-colors"
+              title="Nouvelle recherche"
+            >
+              Nouvelle recherche
+            </button>
           </div>
           <div className="flex-1 px-4 py-4 overflow-hidden">
-            <ChatStep context={{}} onRequestClose={handleClose} />
+            <ChatStep ref={chatRef} context={{}} onRequestClose={handleClose} />
           </div>
         </div>
       )}

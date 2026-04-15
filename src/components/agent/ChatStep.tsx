@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, forwardRef, useImperativeHandle } from 'react';
 import Link from 'next/link';
 import { MicButton } from './MicButton';
 import { ChatMarkdown } from './ChatMarkdown';
@@ -42,7 +42,11 @@ function saveChatState(messages: Message[], qualifCtx: Partial<QualificationCont
   } catch { /* quota exceeded */ }
 }
 
-export function ChatStep({ context, initialMessages = [], onRequestClose }: ChatStepProps) {
+export interface ChatStepHandle {
+  reset: () => void;
+}
+
+export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatStep({ context, initialMessages = [], onRequestClose }, ref) {
   // Restore from cache
   const cached = typeof window !== 'undefined' ? loadChatState() : null;
 
@@ -60,6 +64,20 @@ export function ChatStep({ context, initialMessages = [], onRequestClose }: Chat
   const [multiSelection, setMultiSelection] = useState<string[]>([]);
   const [briefText, setBriefText] = useState('');
   const [alerteVisible, setAlerteVisible] = useState<string | null>(null);
+
+  // Reset function
+  const resetChat = useCallback(() => {
+    setMessages([]);
+    setQualifCtx({});
+    setStepIndex(0);
+    setQualifDone(false);
+    setMultiSelection([]);
+    setBriefText('');
+    setInput('');
+    sessionStorage.removeItem(SESSION_KEY);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ reset: resetChat }), [resetChat]);
 
   // Persist state on changes
   useEffect(() => {
@@ -492,4 +510,4 @@ export function ChatStep({ context, initialMessages = [], onRequestClose }: Chat
       </div>
     </div>
   );
-}
+});
