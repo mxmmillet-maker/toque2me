@@ -117,23 +117,24 @@ function extractImageUrl(images: any): string {
   return url;
 }
 
-function extractColors(colors: any): { nom: string; hexa: string; image?: string }[] {
+function extractColors(colors: any): { nom: string; hexa: string; image?: string; image_back?: string }[] {
   if (!colors || !Array.isArray(colors)) return [];
   const seen = new Set<string>();
-  const result: { nom: string; hexa: string; image?: string }[] = [];
+  const result: { nom: string; hexa: string; image?: string; image_back?: string }[] = [];
   for (const c of colors) {
     const nom = c?.colors?.fr || c?.colors?.en || '';
     if (!nom || seen.has(nom)) continue;
     seen.add(nom);
     const hexArr = c?.colorsHexa || [];
     const hexa = (Array.isArray(hexArr) ? hexArr[0] : hexArr) || '';
-    // Image packshot FACE pour cette couleur
     const packshots = c?.packshots || {};
-    const faceImg = packshots?.FACE?.url_packshot || packshots?.BACK?.url_packshot || '';
+    const faceImg = packshots?.FACE?.url_packshot || '';
+    const backImg = packshots?.BACK?.url_packshot || '';
     result.push({
       nom,
       hexa: hexa.startsWith('#') ? hexa : (hexa ? '#' + hexa : ''),
-      image: faceImg || undefined,
+      image: faceImg || backImg || undefined,
+      image_back: backImg || undefined,
     });
   }
   return result;

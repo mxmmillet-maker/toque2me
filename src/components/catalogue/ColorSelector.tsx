@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { MarquageSimulator } from '@/components/marquage/MarquageSimulator';
 
 interface Color {
   nom: string;
   hexa: string;
   image?: string;
+  image_back?: string;
 }
 
 interface ColorSelectorProps {
@@ -19,11 +21,12 @@ export function ColorSelector({ colors, defaultImage, productName }: ColorSelect
   const [selected, setSelected] = useState<Color | null>(null);
 
   const currentImage = selected?.image || defaultImage;
+  const currentImageBack = selected?.image_back || undefined;
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Image principale */}
-      <div className="relative aspect-square bg-neutral-50 rounded-xl overflow-hidden mb-4">
+      <div className="relative aspect-square bg-neutral-50 rounded-xl overflow-hidden">
         {currentImage ? (
           <Image
             src={currentImage}
@@ -70,6 +73,15 @@ export function ColorSelector({ colors, defaultImage, productName }: ColorSelect
             })}
           </div>
         </div>
+      )}
+
+      {/* Simulateur de marquage */}
+      {currentImage && (
+        <MarquageSimulator
+          productImage={currentImage}
+          productImageBack={currentImageBack}
+          productName={productName}
+        />
       )}
     </div>
   );
