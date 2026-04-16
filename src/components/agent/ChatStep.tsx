@@ -24,6 +24,7 @@ interface ChatStepProps {
   context: any;
   initialMessages?: Message[];
   onRequestClose?: () => void;
+  onContextChange?: (ctx: Partial<QualificationContext>) => void;
 }
 
 const SESSION_KEY = 'toque2me_chat_state';
@@ -48,7 +49,7 @@ export interface ChatStepHandle {
   prefill: (ctx: { secteur?: string; metier?: string; occasion?: string; typologies?: string[] }) => void;
 }
 
-export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatStep({ context, initialMessages = [], onRequestClose }, ref) {
+export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatStep({ context, initialMessages = [], onRequestClose, onContextChange }, ref) {
   // Restore from cache
   const cached = typeof window !== 'undefined' ? loadChatState() : null;
 
@@ -110,6 +111,12 @@ export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatS
   useEffect(() => {
     saveChatState(messages, qualifCtx, stepIndex, qualifDone);
   }, [messages, qualifCtx, stepIndex, qualifDone]);
+
+  // Notifier le parent des changements de contexte (pour preview live)
+  useEffect(() => {
+    onContextChange?.(qualifCtx);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qualifCtx]);
 
   const questionRef = useRef<HTMLDivElement>(null);
 
