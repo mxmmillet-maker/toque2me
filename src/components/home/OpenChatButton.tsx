@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { openChat, type ChatPrefillContext } from '@/components/agent/ChatBubble';
+import { type ChatPrefillContext } from '@/components/agent/ChatBubble';
 
 interface Props extends ChatPrefillContext {
   label?: string;
   variant?: 'dark' | 'light' | 'outline';
-  href?: string;  // Si fourni → Link, sinon → ouvre le chat
+  href?: string;
   size?: 'md' | 'lg';
   className?: string;
 }
@@ -17,8 +17,8 @@ interface Props extends ChatPrefillContext {
  * - variant="light" → fond blanc, texte noir (pour sections sombres)
  * - variant="outline" → bordure seulement (CTA secondaire)
  *
- * Par défaut redirige vers /configurateur (parcours dédié).
- * Si prefill passé (secteur/métier) → ouvre le chat avec contexte.
+ * Redirige toujours vers /configurateur. Si prefill (secteur/métier/typologies) fourni,
+ * on passe le contexte via query string → le configurateur pré-remplit le QCM.
  */
 export function OpenChatButton({
   label = 'Configurer mon pack — 30s',
@@ -36,20 +36,18 @@ export function OpenChatButton({
   }[variant];
   const base = `${sizeClasses} font-medium rounded-lg transition-colors inline-flex items-center justify-center ${variantClasses} ${className}`;
 
-  // Si on a un contexte métier → ouvre le chat
-  const hasPrefill = prefill.secteur || prefill.metier || prefill.typologies?.length;
+  // Build URL avec prefill si besoin
+  let target = href || '/configurateur';
+  const params = new URLSearchParams();
+  if (prefill.secteur) params.set('secteur', prefill.secteur);
+  if (prefill.metier) params.set('metier', prefill.metier);
+  if (prefill.typologies?.length) params.set('typologies', prefill.typologies.join(','));
+  if (prefill.occasion) params.set('occasion', prefill.occasion);
+  const query = params.toString();
+  if (query) target += (target.includes('?') ? '&' : '?') + query;
 
-  if (hasPrefill) {
-    return (
-      <button onClick={() => openChat(prefill)} className={base}>
-        {label}
-      </button>
-    );
-  }
-
-  // Sinon → Link vers /configurateur (parcours dédié)
   return (
-    <Link href={href || '/configurateur'} className={base}>
+    <Link href={target} className={base}>
       {label}
     </Link>
   );

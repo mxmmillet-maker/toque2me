@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QCMStep } from '@/components/agent/QCMStep';
 import { ResultsStep } from '@/components/agent/ResultsStep';
@@ -14,15 +15,40 @@ type Step = 'qcm' | 'results' | 'chat';
 const SESSION_KEY = 'toque2me_configurateur';
 
 export default function ConfigurateurPage() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('qcm');
   const [context, setContext] = useState<any>({});
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [livePreview, setLivePreview] = useState<any[]>([]);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [prefillApplied, setPrefillApplied] = useState(false);
 
-  // Restaurer depuis sessionStorage
+  // Prefill depuis query params (arrivée depuis /btp/electricien, /sante, etc.)
   useEffect(() => {
+    if (prefillApplied) return;
+    const secteur = searchParams.get('secteur');
+    const metier = searchParams.get('metier');
+    const typologies = searchParams.get('typologies')?.split(',').filter(Boolean);
+    const occasion = searchParams.get('occasion');
+
+    if (secteur || metier || typologies?.length) {
+      const newCtx = {
+        secteur: secteur || undefined,
+        metier: metier || undefined,
+        typologies: typologies || undefined,
+        occasion: occasion || undefined,
+      };
+      setContext(newCtx);
+      if (secteur && typologies?.length) {
+        // Fetch preview live immédiatement
+        fetchResults(newCtx, true);
+      }
+      setPrefillApplied(true);
+      return; // Skip restore sessionStorage si on a du prefill
+    }
+
+    // Sinon restaurer depuis sessionStorage
     try {
       const saved = sessionStorage.getItem(SESSION_KEY);
       if (saved) {
@@ -33,7 +59,9 @@ export default function ConfigurateurPage() {
         setLivePreview(state.livePreview || []);
       }
     } catch { /* ignore */ }
-  }, []);
+    setPrefillApplied(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Sauvegarder
   useEffect(() => {
