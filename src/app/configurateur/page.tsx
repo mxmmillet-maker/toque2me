@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ChatStep, type ChatStepHandle } from '@/components/agent/ChatStep';
@@ -8,6 +8,14 @@ import { LivePreviewSidebar } from '@/components/configurateur/LivePreviewSideba
 import Link from 'next/link';
 
 export default function ConfigurateurPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white flex items-center justify-center"><p className="text-sm text-neutral-400">Chargement…</p></div>}>
+      <ConfigurateurContent />
+    </Suspense>
+  );
+}
+
+function ConfigurateurContent() {
   const searchParams = useSearchParams();
   const chatRef = useRef<ChatStepHandle>(null);
   const [livePreview, setLivePreview] = useState<any[]>([]);
