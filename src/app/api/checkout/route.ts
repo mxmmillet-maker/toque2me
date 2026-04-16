@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const totalTtc = Math.ceil(totalHt * 1.2 * 100); // en centimes pour Stripe
 
   // Construire les line_items Stripe
-  const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = lignes.map((l: any) => ({
+  const line_items = lignes.map((l: any) => ({
     price_data: {
       currency: 'eur',
       product_data: {
