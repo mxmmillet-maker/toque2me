@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { OpenChatButton } from '@/components/home/OpenChatButton';
 import { OpenChatButtonLight } from '@/components/home/OpenChatButtonLight';
+import { AnimatedCounter } from '@/components/home/AnimatedCounter';
 
 const CATEGORIES = [
   { label: 'T-shirts', href: '/catalogue?categorie=T-shirts' },
@@ -18,6 +19,7 @@ const CATEGORIES = [
 const METIERS = [
   { icon: '🍽️', label: 'Restaurateurs', sub: 'Tabliers, polos, toques — conformité HACCP', href: '/restaurateurs' },
   { icon: '🦺', label: 'BTP & Artisans', sub: 'Haute visibilité, antistatique, flammes', href: '/btp' },
+  { icon: '🏥', label: 'Santé & Médical', sub: 'Cabinets, cliniques, spa — tuniques, blouses, antibactérien', href: '/sante' },
   { icon: '🏢', label: 'Entreprises', sub: 'T-shirts, sweats, polos — à votre image', href: '/configurateur' },
 ];
 
@@ -106,7 +108,7 @@ export default function Home() {
         <p className="text-center text-xs font-medium uppercase tracking-widest text-slate-400 mb-8">
           Votre secteur, nos solutions
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {METIERS.map((m) => (
             <Link
               key={m.href}
@@ -130,21 +132,21 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-20">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-10">
             <div>
-              <p className="text-2xl font-bold text-neutral-900 mb-2">2 937</p>
+              <AnimatedCounter value={2937} className="block text-3xl sm:text-4xl font-bold text-neutral-900 mb-2 tabular-nums" />
               <h3 className="text-sm font-semibold text-neutral-900 mb-1">produits disponibles</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
                 5 fournisseurs référencés. T-shirts à parkas, tabliers à EPI.
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-neutral-900 mb-2">100%</p>
+              <AnimatedCounter value={100} suffix="%" className="block text-3xl sm:text-4xl font-bold text-neutral-900 mb-2 tabular-nums" />
               <h3 className="text-sm font-semibold text-neutral-900 mb-1">conforme</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
                 HACCP, EN ISO 20471, EN 1149 — chaque produit vérifié pour votre secteur.
               </p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-neutral-900 mb-2">0 €</p>
+              <AnimatedCounter value={0} prefix="" suffix=" €" className="block text-3xl sm:text-4xl font-bold text-neutral-900 mb-2 tabular-nums" />
               <h3 className="text-sm font-semibold text-neutral-900 mb-1">de frais de port dès 150 € HT</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
                 Prix dégressifs transparents. Broderie, sérigraphie, DTF — tout inclus dans le devis.

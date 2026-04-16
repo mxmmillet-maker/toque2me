@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart, type CartItem } from '@/lib/cart';
+import { useToast } from '@/components/ui/Toast';
 
 interface Props {
   ref_fournisseur: string;
@@ -14,6 +15,7 @@ interface Props {
 
 export function AddToCartButton({ ref_fournisseur, nom, image_url, prix_from, categorie, couleurs }: Props) {
   const { add } = useCart();
+  const toast = useToast();
   const [qty, setQty] = useState(10);
   const [selectedCouleur, setSelectedCouleur] = useState<string | undefined>();
   const [selectedHexa, setSelectedHexa] = useState<string | undefined>();
@@ -33,6 +35,7 @@ export function AddToCartButton({ ref_fournisseur, nom, image_url, prix_from, ca
       couleurs_dispo: couleurs?.map(c => ({ nom: c.nom, hexa: c.hexa, image: c.image })),
     });
     setAdded(true);
+    toast.show(`${qty} x ${nom.substring(0, 40)}${nom.length > 40 ? '...' : ''} ajouté au panier`);
     setTimeout(() => setAdded(false), 2000);
   };
 

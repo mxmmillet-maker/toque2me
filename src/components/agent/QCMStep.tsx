@@ -15,6 +15,7 @@ interface QCMResult {
 interface QCMStepProps {
   onComplete: (answers: QCMResult) => void;
   loading?: boolean;
+  onPartialUpdate?: (partial: Partial<{ secteur: string; typologies: string[]; style: string; usage: string; nb_personnes: number; budget_global: number }>) => void;
 }
 
 const SECTEURS = [
@@ -116,7 +117,7 @@ function MultiSelect({ options, selected, onChange }: {
   );
 }
 
-export function QCMStep({ onComplete, loading = false }: QCMStepProps) {
+export function QCMStep({ onComplete, loading = false, onPartialUpdate }: QCMStepProps) {
   const [step, setStep] = useState(0);
   const [secteur, setSecteur] = useState<string | null>(null);
   const [typeEtablissement, setTypeEtablissement] = useState<string | null>(null);
@@ -184,8 +185,8 @@ export function QCMStep({ onComplete, loading = false }: QCMStepProps) {
             selected={secteur}
             onSelect={(id) => {
               setSecteur(id);
-              // Reset sous-étapes si on change de secteur
               setTypeEtablissement(null);
+              onPartialUpdate?.({ secteur: id });
               setTimeout(() => setStep(1), 300);
             }}
           />
@@ -253,7 +254,10 @@ export function QCMStep({ onComplete, loading = false }: QCMStepProps) {
         subtitle: 'Sélectionnez tout ce qui pourrait faire partie du mix',
         content: (
           <div className="space-y-4">
-            <MultiSelect options={PIECES} selected={pieces} onChange={setPieces} />
+            <MultiSelect options={PIECES} selected={pieces} onChange={(newPieces) => {
+              setPieces(newPieces);
+              onPartialUpdate?.({ typologies: newPieces });
+            }} />
           </div>
         ),
         valid: pieces.length > 0,
@@ -265,7 +269,7 @@ export function QCMStep({ onComplete, loading = false }: QCMStepProps) {
           <CardGrid
             options={STYLES}
             selected={style}
-            onSelect={(id) => { setStyle(id); setTimeout(() => setStep((s) => s + 1), 300); }}
+            onSelect={(id) => { setStyle(id); onPartialUpdate?.({ style: id }); setTimeout(() => setStep((s) => s + 1), 300); }}
           />
         ),
         valid: !!style,

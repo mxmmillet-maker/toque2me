@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
 import { Analytics } from "@vercel/analytics/react";
 import { CartProvider } from "@/lib/cart";
+import { ToastProvider } from "@/components/ui/Toast";
 
 const ChatBubble = dynamic(() => import("@/components/agent/ChatBubble").then(m => m.ChatBubble), { ssr: false });
 const NavIcons = dynamic(() => import("@/components/nav/NavIcons").then(m => m.NavIcons), { ssr: false });
@@ -161,11 +162,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <CartProvider>
-          <Navbar />
-          {children}
-          <ChatBubble />
-        </CartProvider>
+        <ToastProvider>
+          <CartProvider>
+            <Navbar />
+            {children}
+            <ChatBubble />
+          </CartProvider>
+        </ToastProvider>
         <Analytics />
       </body>
     </html>
