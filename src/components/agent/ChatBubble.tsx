@@ -7,8 +7,15 @@ import { ChatStep, type ChatStepHandle } from './ChatStep';
 const OPEN_EVENT = 'toque2me:chat:open';
 const CLOSE_EVENT = 'toque2me:chat:close';
 
-export function openChat() {
-  window.dispatchEvent(new Event(OPEN_EVENT));
+export interface ChatPrefillContext {
+  secteur?: string;
+  metier?: string;
+  occasion?: string;  // 'workwear' auto si secteur/métier présent
+  typologies?: string[];
+}
+
+export function openChat(prefill?: ChatPrefillContext) {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: prefill }));
 }
 
 export function closeChat() {
@@ -21,7 +28,16 @@ export function ChatBubble() {
   const [teaserDismissed, setTeaserDismissed] = useState(false);
 
   useEffect(() => {
-    const handleOpen = () => { setOpen(true); setShowTeaser(false); setTeaserDismissed(true); };
+    const handleOpen = (e: Event) => {
+      setOpen(true);
+      setShowTeaser(false);
+      setTeaserDismissed(true);
+      const prefill = (e as CustomEvent<ChatPrefillContext>).detail;
+      if (prefill && chatRef.current?.prefill) {
+        // Reset + inject nouveau contexte
+        chatRef.current.prefill(prefill);
+      }
+    };
     const handleClose = () => setOpen(false);
     window.addEventListener(OPEN_EVENT, handleOpen);
     window.addEventListener(CLOSE_EVENT, handleClose);

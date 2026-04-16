@@ -45,6 +45,7 @@ function saveChatState(messages: Message[], qualifCtx: Partial<QualificationCont
 
 export interface ChatStepHandle {
   reset: () => void;
+  prefill: (ctx: { secteur?: string; metier?: string; occasion?: string; typologies?: string[] }) => void;
 }
 
 export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatStep({ context, initialMessages = [], onRequestClose }, ref) {
@@ -82,7 +83,28 @@ export const ChatStep = forwardRef<ChatStepHandle, ChatStepProps>(function ChatS
     sessionStorage.removeItem(SESSION_KEY);
   }, []);
 
-  useImperativeHandle(ref, () => ({ reset: resetChat }), [resetChat]);
+  const prefillChat = useCallback((prefillCtx: { secteur?: string; metier?: string; occasion?: string; typologies?: string[] }) => {
+    // Reset puis injecter le contexte
+    const newCtx: Partial<QualificationContext> = {
+      occasion: prefillCtx.occasion || 'workwear',
+      secteur: prefillCtx.secteur,
+      metier: prefillCtx.metier,
+      typologies: prefillCtx.typologies,
+    };
+    setMessages([]);
+    setQualifCtx(newCtx);
+    // Skip directement à typologies si déjà fournies, sinon à la sélection typologies
+    setStepIndex(0);
+    setQualifDone(false);
+    setMultiSelection([]);
+    setBriefText('');
+    setInput('');
+    setAddedToCart(false);
+    // Garder dans sessionStorage
+    saveChatState([], newCtx, 0, false);
+  }, []);
+
+  useImperativeHandle(ref, () => ({ reset: resetChat, prefill: prefillChat }), [resetChat, prefillChat]);
 
   // Persist state on changes
   useEffect(() => {

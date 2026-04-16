@@ -1,6 +1,7 @@
 import { SupplierAdapter, RawProduct, NormalizedProduct, PriceGrid, Variante } from '../lib/types';
 import { tagProduct } from '@/lib/product-tagger';
 import { scoreUniverses, isNouveaute, parseGenre } from '@/lib/universe-affinity';
+import { extractNormesFromDescription } from './cybernecard';
 
 // ─── TopTex API v3 ────────────────────────────────────────────────────────────
 // Auth: POST /v3/authenticate {username, password} + header x-api-key → JWT (1h)
@@ -94,7 +95,10 @@ function parseNormes(raw: RawProduct): string[] {
   check(raw.hiVizStandards, 'EN-ISO-20471');
   check(raw.antiStaticStandards, 'EN1149-5');
   check(raw.fireResistanceStandards, 'EN-ISO-11612');
-  return normes;
+  // Enrichir depuis la description (détecte EN 343, EN 13034, EN 11611, etc.)
+  const description = fr(raw.description) + ' ' + fr(raw.salesArguments || '');
+  const fromDesc = extractNormesFromDescription(description);
+  return Array.from(new Set([...normes, ...fromDesc]));
 }
 
 function parseGrammage(weight: string | undefined): number | undefined {

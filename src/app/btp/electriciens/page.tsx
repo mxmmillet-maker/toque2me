@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { OpenChatWithContextButton } from '@/components/home/OpenChatWithContextButton';
 
 export default function ElectriciensPage() {
   return (
@@ -28,12 +29,12 @@ export default function ElectriciensPage() {
           </ul>
         </div>
 
-        <Link
-          href="/configurateur"
-          className="inline-flex items-center px-8 py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors"
-        >
-          Configurer mes vêtements conformes EN 1149-5
-        </Link>
+        <OpenChatWithContextButton
+          label="Configurer mes vêtements conformes EN 1149-5"
+          secteur="btp"
+          metier="electricien"
+          occasion="workwear"
+        />
       </div>
     </main>
   );

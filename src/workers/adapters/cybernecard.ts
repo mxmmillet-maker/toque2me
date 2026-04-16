@@ -9,6 +9,57 @@ const NORMES_PAR_CATEGORIE: Record<string, string[]> = {
   'soudure':        ['EN-ISO-11612'],
 };
 
+// ─── Extraction automatique des normes depuis une description produit ──────
+// Détecte tous les codes de normes européennes EN / EN ISO dans le texte.
+// Exemples détectés :
+//   "Norme EN ISO 20471 classe 2" → EN-ISO-20471
+//   "EN 1149-5 antistatique" → EN1149-5
+//   "Conforme EN 343, EN 13034 type 6" → EN343, EN13034
+//   "EN ISO 11612 A1 B1 C1" → EN-ISO-11612
+const NORME_PATTERNS: { regex: RegExp; normalize: (m: RegExpMatchArray) => string }[] = [
+  // EN ISO 20471, EN ISO 11612, EN ISO 11611, EN ISO 13688, EN ISO 13982, EN ISO 14116
+  { regex: /\bEN[\s-]*ISO[\s-]+(\d{4,5})(?:-(\d+))?\b/gi, normalize: m => `EN-ISO-${m[1]}${m[2] ? '-' + m[2] : ''}` },
+  // EN 1149-5, EN 343, EN 13034-6, EN 381, EN 471
+  { regex: /\bEN[\s-]+(\d{3,5})(?:-(\d+))?\b/gi, normalize: m => `EN${m[1]}${m[2] ? '-' + m[2] : ''}` },
+  // EN 166 (lunettes), EN 388 (gants), EN 397 (casques)
+  // Already matched by the pattern above
+];
+
+// Normes "non-EN" détectables par mot-clé
+const KEYWORD_NORMES: { keywords: string[]; code: string }[] = [
+  { keywords: ['haccp'], code: 'HACCP' },
+  { keywords: ['oeko-tex', 'oekotex', 'œko-tex', 'œkotex'], code: 'OEKO-TEX' },
+  { keywords: ['iso 9001'], code: 'ISO-9001' },
+  { keywords: ['gots'], code: 'GOTS' },
+  { keywords: ['reach'], code: 'REACH' },
+];
+
+export function extractNormesFromDescription(description: string): string[] {
+  if (!description) return [];
+  const found = new Set<string>();
+
+  // Regex EN / EN ISO
+  for (const { regex, normalize } of NORME_PATTERNS) {
+    const matches = Array.from(description.matchAll(regex));
+    for (const m of matches) {
+      const code = normalize(m);
+      // Filtre : éviter les faux positifs (ex: "EN 2024" année, "EN 100" trop court)
+      const num = parseInt(code.replace(/[^\d]/g, ''));
+      if (num >= 300 && num <= 99999) {
+        found.add(code);
+      }
+    }
+  }
+
+  // Keywords
+  const lower = description.toLowerCase();
+  for (const { keywords, code } of KEYWORD_NORMES) {
+    if (keywords.some(k => lower.includes(k))) found.add(code);
+  }
+
+  return Array.from(found);
+}
+
 const SECTEURS_PAR_CATEGORIE: Record<string, string[]> = {
   'cuisine':   ['restaurateur', 'hotelier', 'traiteur'],
   'btp-hv':    ['btp', 'chantier', 'logistique'],
@@ -118,7 +169,10 @@ export const CyberneCardAdapter: SupplierAdapter = {
       grammage,
       origine: '',
       certifications: parseCertifications(raw.descriptionArticleCatalogue || ''),
-      normes: NORMES_PAR_CATEGORIE[categorie] || [],
+      normes: Array.from(new Set([
+        ...(NORMES_PAR_CATEGORIE[categorie] || []),
+        ...extractNormesFromDescription(raw.descriptionArticleCatalogue || ''),
+      ])),
       secteurs: SECTEURS_PAR_CATEGORIE[categorie] || ['entreprise'],
       score_durabilite: computeDurabilite(raw, grammage),
       score_premium: computePremium(raw),
