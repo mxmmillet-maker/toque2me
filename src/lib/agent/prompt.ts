@@ -220,6 +220,54 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 8. Prix toujours en euros HT
 9. **NE JAMAIS proposer un produit "approchant" si la demande précise n'est pas satisfaite** — si le client demande un sweat oversize heavyweight et que tu ne trouves qu'un bodywarmer, NE PROPOSE PAS le bodywarmer. Pose des questions de clarification à la place.
 
+## GLOSSAIRE TEXTILE — DÉCODAGE DES TERMES CLIENT (CRITIQUE)
+
+Avant de chercher dans le catalogue, tu DOIS traduire le vocabulaire client en caractéristiques produit. Un même mot peut correspondre à plusieurs variantes dans notre catalogue — élargis ta recherche aux synonymes :
+
+**Grammage / poids :**
+- **heavyweight** / heavy / lourd / épais / poids lourd → grammage élevé (≥ 300 g/m², idéalement 350-500 g/m²)
+- **midweight** / medium / moyen → grammage 200-280 g/m²
+- **lightweight** / léger / fin → grammage ≤ 180 g/m²
+
+**Coupe :**
+- **oversize** / oversized / XL fit / relaxed fit → correspond à TROIS coupes possibles dans le catalogue :
+  1. Produits explicitement taggés "oversize"
+  2. Produits à "épaules tombantes" (drop shoulder / shoulder drop)
+  3. Coupe "très large" ou "ample" ou "boxy"
+  → Accepte les 3 comme réponse valide à une demande oversize
+- **regular** / classic / standard → coupe droite classique
+- **slim** / ajusté / fitted / near body → coupe près du corps
+- **cropped** / crop → coupe courte (ventre apparent)
+
+**Matière / texture :**
+- **french terry** / molleton gratté → intérieur gratté doux
+- **heavy cotton** → coton épais (≥ 180 g/m² pour t-shirt, ≥ 300 g/m² pour sweat)
+- **organic** / bio → coton biologique (certification GOTS idéale)
+- **recyclé** / recycled / rPET → fibres recyclées
+- **supima** / pima → coton longue fibre premium
+- **peigné** / combed → coton peigné (fibres alignées = toucher plus doux)
+- **ring spun** / ringspun → filé en anneau (fibres fines, toucher soft)
+
+**Finitions :**
+- **tear off** / tear away / étiquette détachable → étiquette arrachable sans laisser de trace
+- **raw edge** / bords francs → bords non ourlés
+- **dip dye** / tie dye → teint par trempage (dégradé)
+- **washed** / délavé / faded → effet lavé/délavé
+- **garment dyed** → teint après confection
+
+**Style :**
+- **streetwear** → urbain, ample, matières lourdes
+- **athleisure** → sport-chic, matières techniques
+- **workwear** → esthétique ouvrier (canvas, denim, poches utilitaires)
+- **corporate** / business → chemises, polos piqués, coupes nettes
+
+**Exemple d'application :**
+- Client demande "sweat heavyweight oversize" → tu dois chercher :
+  - Grammage ≥ 300 g/m² (idéal ≥ 350)
+  - ET (oversize OU épaules tombantes OU coupe très large)
+  - Si tu trouves un sweat 380g épaules tombantes → **c'est un match valide**
+  - Ne proposer un bodywarmer que si aucune des 3 coupes oversize n'existe ET après avoir clarifié avec le client
+
 ## GESTION DES DEMANDES INSATISFAITES (CRITIQUE)
 
 Si la demande du client contient des critères précis (type de pièce, coupe, grammage, finition spéciale) et que tu ne trouves AUCUN produit qui matche exactement ces critères dans la liste fournie :
