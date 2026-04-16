@@ -145,10 +145,10 @@ const COULEUR_OPTIONS: StepOption[] = [
 ];
 
 const STYLE_OPTIONS: StepOption[] = [
-  { value: 'casual',      label: 'Casual / Décontracté', emoji: '👕' },
-  { value: 'chic',        label: 'Chic / Élégant',       emoji: '✨' },
-  { value: 'sportswear',  label: 'Sportswear',           emoji: '⚽' },
-  { value: 'classique',   label: 'Classique / Pro',      emoji: '👔' },
+  { value: 'casual',      label: 'Casual',      sub: 'Décontracté, confort' },
+  { value: 'chic',        label: 'Chic',        sub: 'Élégant, finitions soignées' },
+  { value: 'sportswear',  label: 'Sportswear',  sub: 'Dynamique, respirant' },
+  { value: 'classique',   label: 'Classique',   sub: 'Sobre, professionnel' },
 ];
 
 // ─────────────────────────────────────────────
@@ -239,6 +239,16 @@ export const STATIC_STEPS: QualificationStep[] = [
 
 export const POST_PIECE_STEPS: QualificationStep[] = [
 
+  // ── 4bis. STYLE GLOBAL ────────────────────────────────────────────────────
+
+  {
+    id: 'style',
+    question: 'Quel style d\'ensemble ?',
+    sous_titre: 'Appliqué à toutes les pièces du pack.',
+    type: 'single',
+    options: STYLE_OPTIONS,
+  },
+
   // ── 5. COUPE ──────────────────────────────────────────────────────────────
 
   {
@@ -246,10 +256,10 @@ export const POST_PIECE_STEPS: QualificationStep[] = [
     question: 'C\'est pour qui ?',
     type: 'single',
     options: [
-      { value: 'homme',   label: 'Hommes',   emoji: '👨' },
-      { value: 'femme',   label: 'Femmes',   emoji: '👩' },
-      { value: 'mixte',   label: 'Mixte',    emoji: '👫' },
-      { value: 'unisexe', label: 'Unisexe',  emoji: '🔄', sub: 'Même coupe pour tous' },
+      { value: 'homme',   label: 'Hommes' },
+      { value: 'femme',   label: 'Femmes' },
+      { value: 'mixte',   label: 'Mixte',    sub: 'Hommes + femmes' },
+      { value: 'unisexe', label: 'Unisexe',  sub: 'Même coupe pour tous' },
     ],
   },
 
@@ -277,16 +287,8 @@ export const POST_PIECE_STEPS: QualificationStep[] = [
 export function generatePieceSteps(typologies: string[]): QualificationStep[] {
   const steps: QualificationStep[] = [];
 
+  // Couleur par pièce uniquement — le style est demandé une fois globalement (POST_PIECE_STEPS)
   for (const typo of typologies) {
-    // Style pour cette pièce
-    steps.push({
-      id: `style_${typo}`,
-      question: `${typo} — quel style ?`,
-      type: 'single',
-      options: STYLE_OPTIONS,
-    });
-
-    // Couleur pour cette pièce
     steps.push({
       id: `couleur_${typo}`,
       question: `${typo} — quelle(s) couleur(s) ?`,

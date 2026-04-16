@@ -22,6 +22,8 @@ function ConfigurateurContent() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [context, setContext] = useState<any>({});
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastFetchKeyRef = useRef<string>('');
 
   // Prefill depuis query params (arrivée depuis /btp/electricien, /sante, etc.)
   useEffect(() => {
@@ -42,7 +44,7 @@ function ConfigurateurContent() {
       // Appliquer le prefill dans le ChatStep dès qu'il est prêt
       setTimeout(() => chatRef.current?.prefill(newCtx), 100);
       // Fetch preview live immédiatement si on a de quoi
-      if (secteur && typologies?.length) {
+      if (typologies?.length) {
         fetchPreview(newCtx);
       }
     }
@@ -51,6 +53,13 @@ function ConfigurateurContent() {
   }, [searchParams]);
 
   const fetchPreview = async (ctx: any) => {
+    // Dédupe : éviter le refetch si la clé de contexte n'a pas changé
+    const key = JSON.stringify({
+      s: ctx.secteur, m: ctx.metier, t: ctx.typologies, st: ctx.style, u: ctx.usage,
+    });
+    if (key === lastFetchKeyRef.current) return;
+    lastFetchKeyRef.current = key;
+
     setPreviewLoading(true);
     try {
       const res = await fetch('/api/agent/results', {
@@ -65,6 +74,13 @@ function ConfigurateurContent() {
     } finally {
       setPreviewLoading(false);
     }
+  };
+
+  const scheduleFetch = (ctx: any) => {
+    // Declencher fetch dès qu'on a typologies (secteur optionnel pour event/cadeau/com)
+    if (!ctx.typologies?.length) return;
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = setTimeout(() => fetchPreview(ctx), 400);
   };
 
   const reset = () => {
@@ -116,20 +132,26 @@ function ConfigurateurContent() {
                 onRequestClose={() => {}}
                 onContextChange={(newCtx) => {
                   // Convertir le qualifCtx (chatbot) vers le format context (API results)
+                  // Dériver l'usage depuis l'occasion pour le scoring
+                  const OCCASION_TO_USAGE: Record<string, string> = {
+                    evenement: 'evenement',
+                    quotidien: 'quotidien',
+                    communication: 'image',
+                    cadeau: 'image',
+                    workwear: 'quotidien',
+                  };
                   const ctx: any = {
                     secteur: newCtx.secteur || context.secteur,
                     metier: newCtx.metier || context.metier,
                     typologies: newCtx.typologies,
                     style: newCtx.style,
-                    usage: newCtx.usage,
+                    usage: newCtx.usage || OCCASION_TO_USAGE[newCtx.occasion || ''] || undefined,
                     nb_personnes: newCtx.nb_personnes,
                     budget_global: newCtx.budget_global,
                   };
                   setContext(ctx);
-                  // Fetch preview dès qu'on a secteur + typologies
-                  if (ctx.secteur && ctx.typologies?.length) {
-                    fetchPreview(ctx);
-                  }
+                  // Fetch preview dès qu'on a des typologies (debounced)
+                  scheduleFetch(ctx);
                 }}
               />
             </motion.div>
