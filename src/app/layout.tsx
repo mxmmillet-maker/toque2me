@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Poppins } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -11,15 +11,11 @@ import { ToastProvider } from "@/components/ui/Toast";
 const ChatBubble = dynamic(() => import("@/components/agent/ChatBubble").then(m => m.ChatBubble), { ssr: false });
 const NavIcons = dynamic(() => import("@/components/nav/NavIcons").then(m => m.NavIcons), { ssr: false });
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const poppins = Poppins({
+  subsets: ["latin"],
+  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -141,7 +137,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={cn("font-sans", geistSans.variable)}>
+    <html lang="fr" className={cn("font-sans", poppins.variable)}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'LocalBusiness',
@@ -160,7 +156,7 @@ export default function RootLayout({
         sameAs: [],
       }) }} />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${poppins.variable} antialiased`}
       >
         <ToastProvider>
           <CartProvider>

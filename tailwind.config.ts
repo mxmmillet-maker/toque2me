@@ -9,8 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: ["var(--font-poppins)", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       colors: {
         /* --- Warm charcoal brand scale (slate with warm undertone) --- */
@@ -98,12 +98,14 @@ const config: Config = {
         ring: "hsl(var(--ring))",
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        xl: "0.875rem",
-        "2xl": "1rem",
-        "3xl": "1.25rem",
+        /* Radius réduits pour un look plus sobre/éditorial */
+        sm: "2px",      // mini (badges, tags)
+        DEFAULT: "4px",
+        md: "6px",      // boutons, inputs
+        lg: "8px",      // cartes
+        xl: "10px",     // était 14px
+        "2xl": "12px",  // était 16px — plafond
+        "3xl": "14px",  // était 20px
       },
       spacing: {
         18: "4.5rem",
