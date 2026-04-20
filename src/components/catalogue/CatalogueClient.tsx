@@ -5,6 +5,7 @@ import { SupabaseProduct } from '@/lib/supabase-types';
 import { SearchBar } from './SearchBar';
 import { FilterBar, type Filters } from './FilterBar';
 import { ProductCard } from './ProductCard';
+import { isDeliverableBefore } from '@/lib/delivery';
 
 const PAGE_SIZE = 24;
 
@@ -46,6 +47,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     univers: '',
     genre: '',
     nouveautes: false,
+    dateCible: '',
   });
 
   // Tous les produits (ceux avec prix en premier)
@@ -107,6 +109,11 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
       if (filters.nouveautes && !p.est_nouveaute) return false;
       // Filtre univers : garder uniquement les produits qui ont un score > 0 dans cet univers
       if (activeUnivers && !(p.univers as any)?.[activeUnivers]) return false;
+      // Filtre date cible : ne garder que les produits livrables avant la date
+      if (filters.dateCible) {
+        const target = new Date(filters.dateCible);
+        if (!isDeliverableBefore(p.fournisseur || 'toptex', 'sans', target)) return false;
+      }
       // Lavage : on cherche dans la description
       if (filters.lavage) {
         const desc = (p.description || '').toLowerCase();

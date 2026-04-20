@@ -5,6 +5,7 @@ import { NormeBadge } from '@/components/catalogue/NormeBadge';
 import { PriceGrid } from '@/components/catalogue/PriceGrid';
 import { ColorSelector } from '@/components/catalogue/ColorSelector';
 import { AddToCartButton } from '@/components/catalogue/AddToCartButton';
+import { DeliveryBadge } from '@/components/catalogue/DeliveryBadge';
 import { getPriceTiers } from '@/lib/pricing';
 import type { Metadata } from 'next';
 
@@ -142,6 +143,11 @@ export default async function ProductPage({ params, searchParams }: { params: { 
               ) : (
                 <span className="text-sm text-neutral-400">Prix sur devis</span>
               )}
+            </div>
+
+            {/* Badge livraison */}
+            <div className="mb-6">
+              <DeliveryBadge fournisseur={product.fournisseur} delaiProdJours={product.delai_prod_jours} />
             </div>
 
             {/* Description */}

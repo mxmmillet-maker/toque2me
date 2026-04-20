@@ -21,6 +21,17 @@ async function getAdminData() {
       .limit(200),
   ]);
 
+  // Fetch orders separately (may not exist yet)
+  let ordersData: any[] = [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('orders')
+      .select('id, created_at, statut, lignes, montant_ht, montant_ttc, paye, tracking_number, tracking_url, client_id, clients(email, nom, entreprise)')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    ordersData = data ?? [];
+  } catch { /* table may not exist */ }
+
   return {
     totalProducts: products.count ?? 0,
     activeProducts: activeProducts.count ?? 0,
@@ -30,20 +41,8 @@ async function getAdminData() {
     margins: margins.data ?? [],
     quotes: quotes.data ?? [],
     clients: clients.data ?? [],
-    orders: [],
+    orders: ordersData,
   };
-
-  // Fetch orders separately (may not exist yet)
-  try {
-    const { data: ordersData } = await supabaseAdmin
-      .from('orders')
-      .select('id, created_at, statut, lignes, montant_ht, montant_ttc, paye, tracking_number, tracking_url, client_id, clients(email, nom, entreprise)')
-      .order('created_at', { ascending: false })
-      .limit(100);
-    result.orders = ordersData ?? [];
-  } catch { /* table may not exist */ }
-
-  return result;
 }
 
 export default async function AdminPage({ searchParams }: { searchParams: { key?: string } }) {

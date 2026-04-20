@@ -11,6 +11,7 @@ export interface Filters {
   univers: string;
   genre: string;
   nouveautes: boolean;
+  dateCible: string; // ISO date string ou ''
 }
 
 interface FilterBarProps {
@@ -25,7 +26,7 @@ export function FilterBar({ filters, onChange, certifications, couleurs }: Filte
     onChange({ ...filters, [key]: value });
   };
 
-  const hasFilters = filters.grammageMin > 0 || filters.grammageMax < 999 || filters.lavage || filters.certification || filters.couleur || filters.tri || filters.genre;
+  const hasFilters = filters.grammageMin > 0 || filters.grammageMax < 999 || filters.lavage || filters.certification || filters.couleur || filters.tri || filters.genre || filters.dateCible;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -99,6 +100,18 @@ export function FilterBar({ filters, onChange, certifications, couleurs }: Filte
         </div>
       )}
 
+      {/* Date cible */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 rounded-lg text-sm">
+        <span className="text-slate-400 text-xs whitespace-nowrap">Livré avant</span>
+        <input
+          type="date"
+          value={filters.dateCible}
+          onChange={(e) => update('dateCible', e.target.value)}
+          min={new Date().toISOString().slice(0, 10)}
+          className="text-sm text-slate-700 focus:outline-none bg-transparent"
+        />
+      </div>
+
       {/* Genre */}
       <select
         value={filters.genre}
@@ -127,7 +140,7 @@ export function FilterBar({ filters, onChange, certifications, couleurs }: Filte
 
       {hasFilters && (
         <button
-          onClick={() => onChange({ ...filters, grammageMin: 0, grammageMax: 999, lavage: '', certification: '', couleur: '', tri: '', genre: '' })}
+          onClick={() => onChange({ ...filters, grammageMin: 0, grammageMax: 999, lavage: '', certification: '', couleur: '', tri: '', genre: '', dateCible: '' })}
           className="text-xs text-slate-500 hover:text-neutral-900 underline underline-offset-2 transition-colors"
         >
           Réinitialiser
