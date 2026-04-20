@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { updateMargin, updateQuoteStatut, deleteQuote, deleteClient } from '@/app/admin/actions';
+import { updateMargin, updateQuoteStatut, deleteQuote, deleteClient, updateOrderStatut, updateOrderTracking } from '@/app/admin/actions';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -14,17 +14,32 @@ interface AdminData {
   margins: any[];
   quotes: any[];
   clients: any[];
+  orders: any[];
 }
 
-type Tab = 'kpi' | 'devis' | 'clients' | 'marges' | 'sync';
+type Tab = 'kpi' | 'commandes' | 'devis' | 'clients' | 'marges' | 'sync';
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'kpi', label: 'Dashboard' },
+  { key: 'commandes', label: 'Commandes' },
   { key: 'devis', label: 'Devis' },
   { key: 'clients', label: 'Clients' },
   { key: 'marges', label: 'Marges' },
   { key: 'sync', label: 'Sync logs' },
 ];
+
+const ORDER_STATUTS = ['en_attente', 'commande_fournisseur', 'en_production', 'bat_envoye', 'bat_valide', 'en_marquage', 'expedie', 'livre'];
+
+const ORDER_STATUT_COLORS: Record<string, string> = {
+  en_attente: 'bg-neutral-100 text-neutral-600',
+  commande_fournisseur: 'bg-blue-50 text-blue-700',
+  en_production: 'bg-indigo-50 text-indigo-700',
+  bat_envoye: 'bg-purple-50 text-purple-700',
+  bat_valide: 'bg-violet-50 text-violet-700',
+  en_marquage: 'bg-amber-50 text-amber-700',
+  expedie: 'bg-cyan-50 text-cyan-700',
+  livre: 'bg-emerald-50 text-emerald-700',
+};
 
 const STATUT_COLORS: Record<string, string> = {
   brouillon: 'bg-neutral-100 text-neutral-600',
@@ -63,6 +78,7 @@ export function AdminDashboard({ data }: { data: AdminData }) {
   const [quotes, setQuotes] = useState(data.quotes);
   const [clients, setClients] = useState(data.clients);
   const [margins, setMargins] = useState(data.margins);
+  const [ordersList, setOrdersList] = useState(data.orders);
   const [saving, setSaving] = useState(false);
 
   // ── Actions ──
@@ -84,6 +100,13 @@ export function AdminDashboard({ data }: { data: AdminData }) {
     if (!confirm('Supprimer ce client et tous ses devis ?')) return;
     const res = await deleteClient(clientId);
     if (res.ok) setClients(prev => prev.filter(c => c.id !== clientId));
+  };
+
+  const handleOrderStatut = async (orderId: string, statut: string) => {
+    setSaving(true);
+    const res = await updateOrderStatut(orderId, statut);
+    if (res.ok) setOrdersList(prev => prev.map(o => o.id === orderId ? { ...o, statut } : o));
+    setSaving(false);
   };
 
   const handleMarginUpdate = async (id: string, field: string, value: number) => {
@@ -114,6 +137,7 @@ export function AdminDashboard({ data }: { data: AdminData }) {
             }`}
           >
             {t.label}
+            {t.key === 'commandes' && <span className="ml-1.5 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">{ordersList.length}</span>}
             {t.key === 'devis' && <span className="ml-1.5 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">{quotes.length}</span>}
             {t.key === 'clients' && <span className="ml-1.5 text-xs bg-neutral-100 px-1.5 py-0.5 rounded-full">{clients.length}</span>}
           </button>
@@ -135,6 +159,70 @@ export function AdminDashboard({ data }: { data: AdminData }) {
             <StatCard label="Dernier sync" value={
               data.syncLogs.length > 0 ? formatDate(data.syncLogs[0].created_at) : '—'
             } />
+          </div>
+        </div>
+      )}
+
+      {/* ═══ COMMANDES ═══ */}
+      {tab === 'commandes' && (
+        <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-neutral-100 text-left bg-neutral-50">
+                  <th className="px-4 py-3 text-xs text-neutral-400 uppercase font-medium">Date</th>
+                  <th className="px-4 py-3 text-xs text-neutral-400 uppercase font-medium">Client</th>
+                  <th className="px-4 py-3 text-xs text-neutral-400 uppercase font-medium">Produits</th>
+                  <th className="px-4 py-3 text-xs text-neutral-400 uppercase font-medium">Montant</th>
+                  <th className="px-4 py-3 text-xs text-neutral-400 uppercase font-medium">Statut</th>
+                  <th className="px-4 py-3 text-xs text-neutral-400 uppercase font-medium">Tracking</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ordersList.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-12 text-center text-neutral-400">Aucune commande</td></tr>
+                ) : ordersList.map(o => {
+                  const client = o.clients as any;
+                  const lignes = o.lignes || [];
+                  const montant = o.montant_ttc ? formatMoney(Number(o.montant_ttc)) : formatMoney(Number(o.montant_ht || 0) * 1.2);
+                  return (
+                    <tr key={o.id} className="border-b border-neutral-50 hover:bg-neutral-50/50">
+                      <td className="px-4 py-3 text-neutral-500 tabular-nums whitespace-nowrap">{formatDate(o.created_at)}</td>
+                      <td className="px-4 py-3">
+                        <p className="text-neutral-900 font-medium">{client?.nom || '—'}</p>
+                        <p className="text-xs text-neutral-400">{client?.email || ''}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        {lignes.slice(0, 2).map((l: any, i: number) => (
+                          <p key={i} className="text-xs text-neutral-600">{l.nom} x{l.qty}</p>
+                        ))}
+                        {lignes.length > 2 && <p className="text-xs text-neutral-400">+{lignes.length - 2}</p>}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-neutral-900 tabular-nums">
+                        {montant}
+                        {o.paye && <span className="block text-[10px] text-emerald-600">Payé</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <select
+                          value={o.statut || 'en_attente'}
+                          onChange={(e) => handleOrderStatut(o.id, e.target.value)}
+                          className={`text-xs font-medium px-2 py-1 rounded-md border-0 cursor-pointer ${ORDER_STATUT_COLORS[o.statut] || ORDER_STATUT_COLORS.en_attente}`}
+                        >
+                          {ORDER_STATUTS.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {o.tracking_number ? (
+                          <a href={o.tracking_url || '#'} target="_blank" className="text-neutral-600 underline">{o.tracking_number}</a>
+                        ) : (
+                          <span className="text-neutral-300">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

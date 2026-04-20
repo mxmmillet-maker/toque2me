@@ -5,7 +5,19 @@ import { createSupabaseBrowser } from '@/lib/supabase-browser';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-type Tab = 'devis' | 'profil' | 'projets' | 'adresses';
+type Tab = 'commandes' | 'devis' | 'profil' | 'projets' | 'adresses';
+
+const ORDER_STEPS = ['en_attente', 'en_production', 'en_marquage', 'expedie', 'livre'] as const;
+const ORDER_STEP_LABELS: Record<string, string> = {
+  en_attente: 'En attente',
+  commande_fournisseur: 'Commandé',
+  en_production: 'Production',
+  bat_envoye: 'BAT envoyé',
+  bat_valide: 'BAT validé',
+  en_marquage: 'Marquage',
+  expedie: 'Expédié',
+  livre: 'Livré',
+};
 
 interface Adresse {
   id: string;
@@ -31,8 +43,9 @@ export default function EspaceClientPage() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [adresses, setAdresses] = useState<Adresse[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('devis');
+  const [tab, setTab] = useState<Tab>('commandes');
 
   // Profil form
   const [form, setForm] = useState({ nom: '', entreprise: '', secteur: '', telephone: '', siret: '' });
@@ -94,6 +107,13 @@ export default function EspaceClientPage() {
         .order('par_defaut', { ascending: false })
         .order('created_at', { ascending: false })
         .then(({ data: a }) => setAdresses((a as Adresse[]) || []));
+
+      supabase
+        .from('orders')
+        .select('*')
+        .eq('client_id', data.user.id)
+        .order('created_at', { ascending: false })
+        .then(({ data: o }) => setOrders(o || []));
 
       setLoading(false);
     });
@@ -169,6 +189,7 @@ export default function EspaceClientPage() {
   }
 
   const TABS: { key: Tab; label: string; count?: number }[] = [
+    { key: 'commandes', label: 'Mes commandes', count: orders.length },
     { key: 'devis', label: 'Mes devis', count: quotes.length },
     { key: 'projets', label: 'Mes projets', count: projects.length },
     { key: 'adresses', label: 'Adresses', count: adresses.length },
@@ -217,6 +238,111 @@ export default function EspaceClientPage() {
             </button>
           ))}
         </div>
+
+        {/* ═══ TAB: COMMANDES ═══ */}
+        {tab === 'commandes' && (
+          <>
+            {orders.length === 0 ? (
+              <div className="py-16 text-center border border-neutral-100 rounded-lg">
+                <svg className="mx-auto h-10 w-10 text-neutral-200 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <p className="text-neutral-400 text-sm mb-4">Aucune commande pour le moment</p>
+                <Link href="/catalogue" className="text-sm text-neutral-900 font-medium underline underline-offset-2">
+                  Parcourir le catalogue
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((o) => {
+                  const lignes = o.lignes || [];
+                  const statut = o.statut || 'en_attente';
+                  const currentStepIdx = ORDER_STEPS.indexOf(statut as typeof ORDER_STEPS[number]);
+                  const montantTtc = o.montant_ttc ? Number(o.montant_ttc).toFixed(2) : (Number(o.montant_ht || 0) * 1.2).toFixed(2);
+
+                  return (
+                    <div key={o.id} className="border border-neutral-100 rounded-lg overflow-hidden">
+                      {/* Header commande */}
+                      <div className="flex items-center justify-between p-4 bg-neutral-50">
+                        <div>
+                          <p className="text-sm font-semibold text-neutral-900">
+                            Commande #{o.id.slice(0, 8).toUpperCase()}
+                          </p>
+                          <p className="text-xs text-neutral-400 mt-0.5">
+                            {new Date(o.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-neutral-900 tabular-nums">{montantTtc} € TTC</p>
+                          {o.paye && <p className="text-[10px] text-emerald-600 font-medium">Payé</p>}
+                        </div>
+                      </div>
+
+                      {/* Stepper visuel */}
+                      <div className="px-4 py-3 border-t border-neutral-100">
+                        <div className="flex items-center justify-between">
+                          {ORDER_STEPS.map((step, i) => {
+                            const isActive = i <= currentStepIdx;
+                            const isCurrent = step === statut;
+                            return (
+                              <div key={step} className="flex items-center flex-1">
+                                <div className="flex flex-col items-center">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                                    isCurrent ? 'bg-neutral-900 text-white ring-2 ring-neutral-900 ring-offset-2' :
+                                    isActive ? 'bg-emerald-500 text-white' :
+                                    'bg-neutral-200 text-neutral-400'
+                                  }`}>
+                                    {isActive && !isCurrent ? (
+                                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                    ) : (
+                                      i + 1
+                                    )}
+                                  </div>
+                                  <span className={`text-[9px] mt-1 whitespace-nowrap ${isCurrent ? 'text-neutral-900 font-semibold' : 'text-neutral-400'}`}>
+                                    {ORDER_STEP_LABELS[step]}
+                                  </span>
+                                </div>
+                                {i < ORDER_STEPS.length - 1 && (
+                                  <div className={`flex-1 h-px mx-1 ${isActive ? 'bg-emerald-500' : 'bg-neutral-200'}`} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Lignes produit */}
+                      <div className="px-4 py-3 border-t border-neutral-100 space-y-2">
+                        {lignes.slice(0, 3).map((l: any, i: number) => (
+                          <div key={i} className="flex items-center justify-between text-xs">
+                            <span className="text-neutral-600 truncate mr-2">{l.nom}</span>
+                            <span className="text-neutral-400 flex-shrink-0">x{l.qty}</span>
+                          </div>
+                        ))}
+                        {lignes.length > 3 && (
+                          <p className="text-[10px] text-neutral-400">+{lignes.length - 3} autre{lignes.length > 4 ? 's' : ''}</p>
+                        )}
+                      </div>
+
+                      {/* Tracking */}
+                      {o.tracking_url && (
+                        <div className="px-4 py-3 border-t border-neutral-100">
+                          <a
+                            href={o.tracking_url}
+                            target="_blank"
+                            className="text-xs text-neutral-900 font-medium underline underline-offset-2"
+                          >
+                            Suivre mon colis {o.tracking_number && `(${o.tracking_number})`}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
 
         {/* ═══ TAB: DEVIS ═══ */}
         {tab === 'devis' && (

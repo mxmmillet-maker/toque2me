@@ -12,12 +12,19 @@ export default function ConnexionPage() {
           </p>
         </div>
         <AuthForm mode="login" />
-        <p className="mt-6 text-center text-sm text-neutral-500">
-          Pas encore de compte ?{' '}
-          <Link href="/compte/inscription" className="text-neutral-900 font-medium underline underline-offset-2">
-            Créer un compte
-          </Link>
-        </p>
+        <div className="mt-6 text-center space-y-2">
+          <p className="text-sm text-neutral-500">
+            <Link href="/compte/mot-de-passe-oublie" className="text-neutral-500 hover:text-neutral-900 underline underline-offset-2">
+              Mot de passe oublié ?
+            </Link>
+          </p>
+          <p className="text-sm text-neutral-500">
+            Pas encore de compte ?{' '}
+            <Link href="/compte/inscription" className="text-neutral-900 font-medium underline underline-offset-2">
+              Créer un compte
+            </Link>
+          </p>
+        </div>
       </div>
     </main>
   );
