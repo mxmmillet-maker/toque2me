@@ -14,17 +14,18 @@ export function ProductCard({ product, packMode }: ProductCardProps) {
 
   return (
     <Link href={href} className="group bg-white border border-slate-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-slate-200 transition-all duration-300 block">
-      <div className="relative aspect-square bg-neutral-50 overflow-hidden">
+      <div className="relative aspect-square bg-white overflow-hidden">
         {product.image_url ? (
           <Image
             src={product.image_url}
             alt={product.nom}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-slate-300 text-sm">
+          <div className="flex items-center justify-center h-full bg-neutral-50 text-slate-300 text-sm">
             Pas de photo
           </div>
         )}

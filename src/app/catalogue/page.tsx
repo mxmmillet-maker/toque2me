@@ -13,7 +13,7 @@ async function getProducts() {
   while (true) {
     const { data, error } = await supabaseAdmin
       .from('products')
-      .select('id, nom, ref_fournisseur, categorie, image_url, grammage, origine, certifications, style, couleurs, score_durabilite, score_premium, prix_from, univers, est_nouveaute, genre, marque, tags')
+      .select('id, nom, ref_fournisseur, fournisseur, categorie, image_url, grammage, origine, certifications, style, couleurs, score_durabilite, score_premium, prix_from, univers, est_nouveaute, genre, marque, tags, delai_prod_jours, description')
       .eq('actif', true)
       .or('exclu.is.null,exclu.eq.false')
       .order('nom')
@@ -37,19 +37,19 @@ export default async function CataloguePage({
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 pb-16">
         {/* Breadcrumb */}
-        <nav className="mb-6 flex items-center gap-1.5 text-xs text-slate-400">
+        <nav className="mb-4 flex items-center gap-1.5 text-xs text-slate-400">
           <Link href="/" className="hover:text-neutral-900 transition-colors">Accueil</Link>
           <span>/</span>
           <span className="text-slate-600">Catalogue</span>
         </nav>
 
-        <div className="mb-10">
-          <h1 className="text-2xl sm:text-3xl font-semibold text-neutral-900 tracking-tight">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-neutral-900 tracking-tight">
             Catalogue
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-500">
             {products.length} produits — Textile et objets personnalisables pour professionnels
           </p>
         </div>
