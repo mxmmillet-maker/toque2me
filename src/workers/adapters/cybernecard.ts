@@ -255,31 +255,39 @@ function parseCertifications(desc: string): string[] {
 }
 
 function computeDurabilite(raw: RawProduct, grammage?: number): number {
-  let score = 50;
+  // Base relevée à 70 : les produits Cybernecard actifs ont été sélectionnés manuellement
+  let score = 70;
   if (grammage) {
-    if (grammage >= 280) score += 20;
-    else if (grammage >= 200) score += 10;
+    if (grammage >= 280) score += 15;
+    else if (grammage >= 200) score += 8;
   }
 
   const desc = (raw.descriptionArticleCatalogue || '').toLowerCase();
-  if (desc.includes('oeko-tex')) score += 15;
-  if (desc.includes('gots')) score += 15;
-  if (desc.includes('bio') || desc.includes('organic')) score += 10;
+  if (desc.includes('oeko-tex')) score += 10;
+  if (desc.includes('gots')) score += 10;
+  if (desc.includes('bio') || desc.includes('organic')) score += 8;
+  if (desc.includes('résistant') || desc.includes('renforcé') || desc.includes('stretch')) score += 5;
 
   return Math.min(score, 100);
 }
 
 function computePremium(raw: RawProduct): number {
-  let score = 40;
+  // Base relevée à 65 : produits pro sélectionnés (CXS workwear, Halfar bagagerie)
+  let score = 65;
   const marque = (raw.marque || raw.fournisseurLabel || '').toLowerCase();
+  const desc = (raw.descriptionArticleCatalogue || '').toLowerCase();
 
   const marquesHautDeGamme = ['stanley/stella', 'kariban', 'result', 'regatta'];
   const marquesMid = ['fruit of the loom', 'gildan', 'sg', 'daiber'];
 
   if (marquesHautDeGamme.some(m => marque.includes(m))) score = 85;
-  else if (marquesMid.some(m => marque.includes(m))) score = 60;
+  else if (marquesMid.some(m => marque.includes(m))) score = 70;
 
-  return score;
+  // Bonus qualité depuis description
+  if (desc.includes('premium') || desc.includes('haut de gamme')) score += 10;
+  if (desc.includes('professionnel') || desc.includes('pro ')) score += 5;
+
+  return Math.min(score, 100);
 }
 
 // ─── Parsing structuré de la description ────────────────────────────────────
