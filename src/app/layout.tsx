@@ -88,25 +88,37 @@ function Navbar() {
             </div>
           </div>
 
-          {/* Métiers avec dropdown */}
+          {/* Univers avec dropdown */}
           <div className="relative group">
             <span className="px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 rounded-lg hover:bg-slate-50 transition-colors cursor-default">
-              Métiers
+              Univers
             </span>
             <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              <div className="bg-white border border-slate-200 rounded-xl shadow-lg p-2 w-56">
-                <Link href="/restaurateurs" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
-                  <span className="text-lg">🍽️</span> Restauration / CHR
+              <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-2 w-64">
+                <p className="px-3 py-1.5 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Par secteur</p>
+                <Link href="/restaurateurs" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🍽️</span> Restauration / CHR
                 </Link>
-                <Link href="/btp" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
-                  <span className="text-lg">🦺</span> BTP & Artisans
+                <Link href="/btp" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🦺</span> BTP & Artisans
                 </Link>
-                <Link href="/catalogue?categorie=Chef" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
-                  <span className="text-lg">👨‍🍳</span> Chef / Cuisine pro
+                <Link href="/sante" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🏥</span> Santé & Médical
                 </Link>
-                <div className="border-t border-slate-100 my-1" />
-                <Link href="/marquage" className="flex items-center gap-3 px-3 py-2.5 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-lg transition-colors">
-                  <span className="text-lg">🧵</span> Guide marquage
+                <div className="border-t border-slate-100 my-1.5" />
+                <p className="px-3 py-1.5 text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Par usage</p>
+                <Link href="/catalogue?univers=evenementiel" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🎉</span> Événementiel
+                </Link>
+                <Link href="/catalogue?univers=sportswear" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">⚽</span> Sportswear
+                </Link>
+                <Link href="/catalogue?univers=epi" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🛡️</span> EPI / Sécurité
+                </Link>
+                <div className="border-t border-slate-100 my-1.5" />
+                <Link href="/marquage" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🧵</span> Guide marquage
                 </Link>
               </div>
             </div>
