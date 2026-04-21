@@ -16,12 +16,11 @@ export function ProductCard({ product, packMode }: ProductCardProps) {
     <Link href={href} className="group bg-white border border-slate-100 rounded-xl overflow-hidden hover:shadow-lg hover:border-slate-200 transition-all duration-300 block">
       <div className="relative aspect-square bg-white overflow-hidden">
         {product.image_url ? (
-          <Image
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
             src={product.image_url}
             alt={product.nom}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+            className="absolute inset-0 w-full h-full object-contain p-3 group-hover:scale-105 transition-transform duration-500"
             loading="lazy"
           />
         ) : (
