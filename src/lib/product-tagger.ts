@@ -245,6 +245,12 @@ const RULES: TagRule[] = [
   // ── Lavage depuis description ──
   { condition: (p) => /60\s*°/.test(p.description), tags: { lavage_max: 60 } },
   { condition: (p) => /95\s*°/.test(p.description), tags: { lavage_max: 95 } },
+
+  // ── Gammes premium identifiées par nom de gamme dans le libellé ──
+  // Ces règles passent en dernier pour qu'elles l'emportent sur la détection prix.
+  // Gold Label = gamme premium K-up (headwear). Kariban Premium = gamme premium Kariban.
+  { condition: (p) => /\bGold Label\b/i.test(p.nom), tags: { niveau_gamme: 'premium' } },
+  { condition: (p) => /\bKariban Premium\b/i.test(p.nom), tags: { niveau_gamme: 'premium' } },
 ];
 
 // ─── Moteur principal ────────────────────────────────────────────────────────
