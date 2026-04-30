@@ -31,7 +31,7 @@ async function getProducts() {
 export default async function CataloguePage({
   searchParams,
 }: {
-  searchParams: { categorie?: string; from?: string; line?: string };
+  searchParams: { categorie?: string; univers?: string; from?: string; line?: string };
 }) {
   const products = await getProducts();
 
@@ -57,6 +57,7 @@ export default async function CataloguePage({
         <CatalogueClient
           products={products}
           initialCategorie={searchParams.categorie}
+          initialUnivers={searchParams.univers}
           packMode={searchParams.from === 'pack' ? searchParams.line : undefined}
         />
       </div>

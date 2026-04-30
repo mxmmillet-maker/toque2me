@@ -17,7 +17,28 @@ export type Universe =
   | 'evenementiel'
   | 'sportswear'
   | 'epi'
-  | 'sante';
+  | 'sante'
+  | 'vignoble'
+  // Sous-postes vignoble (calculés indépendamment, le parent `vignoble` = max des sous-scores)
+  | 'vignoble-vigne'
+  | 'vignoble-tractoriste'
+  | 'vignoble-phyto'
+  | 'vignoble-chai'
+  | 'vignoble-logistique'
+  | 'vignoble-conditionnement'
+  | 'vignoble-commercial'
+  | 'vignoble-cave-bar';
+
+export const VIGNOBLE_POSTES: Universe[] = [
+  'vignoble-vigne',
+  'vignoble-tractoriste',
+  'vignoble-phyto',
+  'vignoble-chai',
+  'vignoble-logistique',
+  'vignoble-conditionnement',
+  'vignoble-commercial',
+  'vignoble-cave-bar',
+];
 
 export type UniverseScores = Partial<Record<Universe, number>>;
 
@@ -183,6 +204,65 @@ const RULES: UniverseRule[] = [
 
   // Cache-cœur, col V médical
   { universe: 'sante', score: 0.5, condition: (p) => matchDesc(p, ['cache-cœur', 'cache cœur', 'col v']) && matchBrand(p, ['dickies', 'cherokee', 'onna']) },
+
+  // ═══════════════════════════════════════════════════════════════
+  // VIGNOBLE — 8 sous-postes (vigne, tractoriste, phyto, chai,
+  // logistique, conditionnement, commercial, cave-bar).
+  // Le parent `vignoble` est calculé en sortie = max des sous-scores.
+  // Stratégie : matcher d'abord sur les signaux forts (normes EN
+  // spécifiques + vocabulaire métier précis), puis sur marques.
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── vignoble-vigne — taille, vendange manuelle, travaux en vert ──
+  { universe: 'vignoble-vigne', score: 0.9, condition: (p) => matchDescWord(p, ['vigneron', 'vigneronne', 'viticulteur', 'viticultrice', 'viticole', 'vigne', 'vignes', 'vignoble', 'vignobles', 'vendange', 'vendanges', 'sécateur', 'sécateurs', 'sarment', 'sarments', 'cep', 'ceps']) },
+  { universe: 'vignoble-vigne', score: 0.7, condition: (p) => matchDescWord(p, ['ébourgeonnage', 'épamprage', 'palissage', 'écimage', 'rognage', 'effeuillage', 'éclaircissage', 'guyot', 'cordon de royat', 'taille de vigne', 'taille en vert']) },
+  { universe: 'vignoble-vigne', score: 0.6, condition: (p) => matchNorme(p, ['EN 388']) && matchTypeKey(p, ['gant']) },
+  { universe: 'vignoble-vigne', score: 0.5, condition: (p) => matchNorme(p, ['EN ISO 20345', 'EN 20345']) && matchDescWord(p, ['s3', 'src']) && matchTypeKey(p, ['chaussure', 'botte']) },
+  { universe: 'vignoble-vigne', score: 0.4, condition: (p) => matchNorme(p, ['EN 343']) },
+  { universe: 'vignoble-vigne', score: 0.4, condition: (p) => matchBrand(p, ['rostaing', 'lafont', 'molinel']) },
+
+  // ── vignoble-tractoriste — enjambeur, vendange mécanique ──
+  { universe: 'vignoble-tractoriste', score: 0.9, condition: (p) => matchDescWord(p, ['tractoriste', 'enjambeur', 'machine à vendanger', 'vendange mécanique', 'vendangeuse', 'cabine tracteur', 'pulvérisation tractée']) },
+  { universe: 'vignoble-tractoriste', score: 0.6, condition: (p) => matchNorme(p, ['EN ISO 20471', 'EN 20471']) && matchTypeKey(p, ['gilet', 'veste']) },
+  { universe: 'vignoble-tractoriste', score: 0.5, condition: (p) => matchNorme(p, ['EN 352']) },
+
+  // ── vignoble-phyto — applicateur produits phytosanitaires ──
+  { universe: 'vignoble-phyto', score: 1.0, condition: (p) => matchNorme(p, ['EN ISO 27065', 'ISO 27065']) },
+  { universe: 'vignoble-phyto', score: 0.9, condition: (p) => matchDescWord(p, ['phytosanitaire', 'phytosanitaires', 'phyto', 'pulvérisateur', 'pulvérisateurs', 'atomiseur', 'bouillie bordelaise', 'certiphyto', 'znt', 'zone non traitée']) },
+  { universe: 'vignoble-phyto', score: 0.7, condition: (p) => matchNorme(p, ['EN 14605']) && matchDescWord(p, ['type 3', 'type 4', 'type 5', 'type 6']) },
+  { universe: 'vignoble-phyto', score: 0.6, condition: (p) => matchNorme(p, ['EN ISO 374', 'EN 374']) && matchTypeKey(p, ['gant']) },
+  { universe: 'vignoble-phyto', score: 0.5, condition: (p) => matchNorme(p, ['EN 14387', 'EN 140']) },
+  { universe: 'vignoble-phyto', score: 0.5, condition: (p) => matchNorme(p, ['EN 13832']) && matchTypeKey(p, ['botte']) },
+  { universe: 'vignoble-phyto', score: 0.4, condition: (p) => matchNorme(p, ['EN 166']) && matchDescWord(p, ['lunette', 'lunettes']) },
+  { universe: 'vignoble-phyto', score: 0.4, condition: (p) => matchBrand(p, ['honeywell', 'showa']) && matchDescWord(p, ['chimie', 'chimique', 'nitrile']) },
+
+  // ── vignoble-chai — cuverie, soutirage, mise en bouteille ──
+  { universe: 'vignoble-chai', score: 0.9, condition: (p) => matchDescWord(p, ['chai', 'chais', 'cuverie', 'cuve inox', 'pressoir', 'pressoirs', 'pressurage', 'foulage', 'égrappage', 'soutirage', 'bâtonnage', 'décuvage', 'entonnage', 'fermentation', 'malolactique']) },
+  { universe: 'vignoble-chai', score: 0.7, condition: (p) => matchDescWord(p, ['barrique', 'barriques', 'foudre', 'foudres', 'fût', 'fûts', 'tonneau', 'tonneaux']) || matchDescWord(p, ['élevage en barrique', 'élevage en fût']) },
+  { universe: 'vignoble-chai', score: 0.6, condition: (p) => matchNorme(p, ['EN ISO 20345', 'EN 20345']) && matchDescWord(p, ['s4', 's5']) && matchTypeKey(p, ['botte', 'chaussure']) },
+  { universe: 'vignoble-chai', score: 0.5, condition: (p) => matchNorme(p, ['EN 14605']) && matchTypeKey(p, ['tablier']) },
+  { universe: 'vignoble-chai', score: 0.5, condition: (p) => matchTypeKey(p, ['tablier']) && matchDescWord(p, ['pvc', 'caoutchouc', 'enduit', 'imperméable']) },
+  { universe: 'vignoble-chai', score: 0.4, condition: (p) => matchTypeKey(p, ['gant']) && matchDescWord(p, ['nitrile', 'étanche']) },
+
+  // ── vignoble-logistique — cariste, expédition, palettisation ──
+  { universe: 'vignoble-logistique', score: 0.9, condition: (p) => matchDescWord(p, ['cariste', 'manutentionnaire', 'expédition', 'palettisation', 'gerbeur', 'transpalette']) },
+  { universe: 'vignoble-logistique', score: 0.5, condition: (p) => matchNorme(p, ['EN ISO 20471', 'EN 20471']) && matchTypeKey(p, ['gilet', 'veste']) },
+  { universe: 'vignoble-logistique', score: 0.4, condition: (p) => matchNorme(p, ['EN ISO 20345', 'EN 20345']) && matchDescWord(p, ['s3']) && matchTypeKey(p, ['chaussure']) },
+
+  // ── vignoble-conditionnement — étiquetage, habillage, capsulage ──
+  { universe: 'vignoble-conditionnement', score: 0.9, condition: (p) => matchDescWord(p, ['étiquetage', 'capsulage', 'coiffage', 'muselet', 'muselets', 'bouchage', 'tirage', 'habillage bouteille']) },
+  { universe: 'vignoble-conditionnement', score: 0.5, condition: (p) => matchNorme(p, ['EN 388']) && matchDescWord(p, ['anti-coupure', 'anti coupure', 'cutter', 'cercleuse']) },
+
+  // ── vignoble-commercial — accueil domaine, dégustation, salons ──
+  { universe: 'vignoble-commercial', score: 0.9, condition: (p) => matchDescWord(p, ['château', 'châteaux', 'domaine viticole', 'cru classé', 'œnotourisme', 'oenotourisme', 'vinexpo', 'wine paris']) },
+  { universe: 'vignoble-commercial', score: 0.6, condition: (p) => matchDescWord(p, ['dégustation', 'dégustations', 'salon professionnel', 'foire aux vins', 'négociant']) },
+  // Polo/chemise marques premium uniquement — exclure si hi-vis (faux positifs workwear)
+  { universe: 'vignoble-commercial', score: 0.4, condition: (p) => matchTypeKey(p, ['polo', 'chemise']) && matchBrand(p, ['kariban premium', 'premier', 'brook taverner', 'native spirit', 'cottover', 'b&c collection']) && !matchDescWord(p, ['haute visibilité', 'hi-vis', 'fluo', 'fluorescent']) },
+
+  // ── vignoble-cave-bar — bar à vin, cave à vin, service vin ──
+  { universe: 'vignoble-cave-bar', score: 0.9, condition: (p) => matchDescWord(p, ['caviste', 'sommelier', 'sommellerie', 'bar à vin', 'bar a vin', 'cave à vin', 'cave a vin', 'service vin']) },
+  { universe: 'vignoble-cave-bar', score: 0.5, condition: (p) => matchTypeKey(p, ['tablier']) && matchDescWord(p, ['bavette', 'cuir', 'denim', 'sangles croisées', 'sommelier']) },
+  { universe: 'vignoble-cave-bar', score: 0.4, condition: (p) => matchBrand(p, ['karlowsky', 'le chef', 'premier']) && matchTypeKey(p, ['tablier']) },
 ];
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -192,14 +272,56 @@ function matchType(p: ProductInput, types: string[]): boolean {
   return types.some(type => t === type);
 }
 
+// Plus tolérant que matchType : matche aussi sur la catégorie et le nom
+// (utile quand le tagger n'a pas extrait de type explicite — fréquent sur Cybernecard).
+function matchTypeKey(p: ProductInput, types: string[]): boolean {
+  const t = p.tags?.type?.toLowerCase() || '';
+  const cat = (p.categorie || '').toLowerCase();
+  const nom = (p.nom || '').toLowerCase();
+  return types.some(type => {
+    if (t === type || t.includes(type)) return true;
+    if (cat.includes(type)) return true;
+    const re = new RegExp(`(?:^|[^a-zà-ÿ])${type}s?(?:[^a-zà-ÿ]|$)`, 'i');
+    return re.test(nom);
+  });
+}
+
+function matchNorme(p: ProductInput, normes: string[]): boolean {
+  if (!p.normes || p.normes.length === 0) {
+    // Fallback : chercher dans la description si la norme n'est pas extraite
+    const hay = `${p.description || ''} ${p.nom || ''}`.toUpperCase();
+    return normes.some(n => hay.includes(n.toUpperCase()));
+  }
+  const flat = p.normes.map(n => n.toUpperCase()).join(' | ');
+  return normes.some(n => flat.includes(n.toUpperCase()));
+}
+
 function matchBrand(p: ProductInput, brands: string[]): boolean {
-  const b = p.marque.toLowerCase().replace(/[®™]/g, '').trim();
-  return brands.some(brand => b.includes(brand));
+  const b = (p.marque || '').toLowerCase().replace(/[®™]/g, '').trim();
+  const nom = (p.nom || '').toLowerCase().replace(/[®™]/g, '');
+  return brands.some(brand => {
+    const bl = brand.toLowerCase();
+    if (b && b.includes(bl)) return true;
+    // Fallback : chercher le nom de marque dans le nom produit (la marque est souvent
+    // suffixée au nom : "Polo Native Spirit", "T-shirt Kariban Premium").
+    return nom.includes(bl);
+  });
 }
 
 function matchDesc(p: ProductInput, keywords: string[]): boolean {
   const haystack = `${p.nom} ${p.description} ${p.meta?.arguments_vente || ''}`.toLowerCase();
   return keywords.some(kw => haystack.includes(kw.toLowerCase()));
+}
+
+// Comme matchDesc mais avec word-boundary — évite que "salon" matche "salopette"
+// ou que "vigne" matche "consigne".
+function matchDescWord(p: ProductInput, keywords: string[]): boolean {
+  const haystack = `${p.nom} ${p.description} ${p.meta?.arguments_vente || ''}`.toLowerCase();
+  return keywords.some(kw => {
+    const escaped = kw.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(?:^|[^a-zà-ÿ0-9])${escaped}(?:[^a-zà-ÿ0-9]|$)`, 'i');
+    return re.test(haystack);
+  });
 }
 
 // ─── Nouveautés (refs tagués "New" par Top Tex) ─────────────────────────────
@@ -319,6 +441,15 @@ export function scoreUniverses(product: ProductInput): UniverseScores {
     if (score > 0) {
       result[universe as Universe] = Math.min(Math.round(score * 100) / 100, 1);
     }
+  }
+
+  // Tag parent `vignoble` = max des sous-postes vignoble-*
+  // (permet de filtrer tous les produits vignoble sans connaître le poste).
+  const vignobleSubScores = VIGNOBLE_POSTES
+    .map(p => result[p] ?? 0)
+    .filter(s => s > 0);
+  if (vignobleSubScores.length > 0) {
+    result.vignoble = Math.max(...vignobleSubScores);
   }
 
   return result;

@@ -30,6 +30,7 @@ const UNIVERS = [
   { icon: '🍽️', label: 'Restauration', href: '/restaurateurs' },
   { icon: '🦺', label: 'BTP & Artisans', href: '/btp' },
   { icon: '🏥', label: 'Santé', href: '/sante' },
+  { icon: '🍇', label: 'Vignoble', href: '/catalogue?univers=vignoble' },
   { icon: '🎉', label: 'Événementiel', href: '/catalogue?univers=evenementiel' },
   { icon: '⚽', label: 'Sportswear', href: '/catalogue?univers=sportswear' },
   { icon: '🛡️', label: 'EPI / Sécurité', href: '/catalogue?univers=epi' },

@@ -116,6 +116,9 @@ function Navbar() {
                 <Link href="/catalogue?univers=epi" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
                   <span className="text-base">🛡️</span> EPI / Sécurité
                 </Link>
+                <Link href="/catalogue?univers=vignoble" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
+                  <span className="text-base">🍇</span> Vignoble
+                </Link>
                 <div className="border-t border-slate-100 my-1.5" />
                 <Link href="/marquage" className="flex items-center gap-3 px-3 py-2 text-sm text-slate-600 hover:text-neutral-900 hover:bg-slate-50 rounded-md transition-colors">
                   <span className="text-base">🧵</span> Guide marquage

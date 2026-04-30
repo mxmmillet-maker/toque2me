@@ -24,17 +24,34 @@ const UNIVERS_LABELS: Record<string, string> = {
   sportswear: 'Sportswear',
   epi: 'EPI',
   sante: 'Santé & Beauté',
+  vignoble: 'Vignoble',
+};
+
+// Sous-postes Vignoble — affichés en chips quand l'univers Vignoble est actif.
+// Ordre choisi : terrain d'abord, support derrière, phyto en dernier (cf. brief —
+// poste régulé mais souvent sous-traité, à exister en SEO sans être mis en avant).
+const VIGNOBLE_POSTES_LABELS: Record<string, string> = {
+  'vignoble-vigne': 'Vigne',
+  'vignoble-tractoriste': 'Tractoriste',
+  'vignoble-chai': 'Chai',
+  'vignoble-cave-bar': 'Cave & Bar',
+  'vignoble-commercial': 'Commercial',
+  'vignoble-logistique': 'Logistique',
+  'vignoble-conditionnement': 'Conditionnement',
+  'vignoble-phyto': 'Phyto',
 };
 
 const NOUVEAUTE_BOOST = 0.15;
+const PREMIUM_BOOST = 0.12;
 
 interface CatalogueClientProps {
   products: SupabaseProduct[];
   initialCategorie?: string;
+  initialUnivers?: string;
   packMode?: string;
 }
 
-export function CatalogueClient({ products, initialCategorie, packMode }: CatalogueClientProps) {
+export function CatalogueClient({ products, initialCategorie, initialUnivers, packMode }: CatalogueClientProps) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -46,7 +63,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     certification: '',
     couleur: '',
     tri: '',
-    univers: '',
+    univers: initialUnivers || '',
     genre: '',
     nouveautes: false,
     dateCible: '',
@@ -91,6 +108,23 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
   // Grammage contextuel : n'afficher que si la catégorie sélectionnée est textile
   const showGrammage = !filters.categorie || TEXTILE_CATEGORIES.has(filters.categorie);
 
+  // Vignoble actif = on est sur le parent ou un sous-poste
+  const isVignobleActive = filters.univers === 'vignoble' || filters.univers.startsWith('vignoble-');
+
+  const vignoblePosteCounts = useMemo(() => {
+    if (!isVignobleActive) return null;
+    const counts: Record<string, number> = { vignoble: 0 };
+    for (const key of Object.keys(VIGNOBLE_POSTES_LABELS)) counts[key] = 0;
+    for (const p of productsWithPrice) {
+      const u: any = (p as any).univers || {};
+      if (u.vignoble) counts.vignoble++;
+      for (const key of Object.keys(VIGNOBLE_POSTES_LABELS)) {
+        if (u[key]) counts[key]++;
+      }
+    }
+    return counts;
+  }, [productsWithPrice, isVignobleActive]);
+
   const filtered = useMemo(() => {
     const activeUnivers = filters.univers;
     const result = productsWithPrice.filter((p) => {
@@ -127,6 +161,7 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
     const getCompositeScore = (p: any): number => {
       let score = ((p.score_premium || 0) + (p.score_durabilite || 0)) / 200;
       if (p.est_nouveaute) score += NOUVEAUTE_BOOST;
+      if (p.tags?.niveau_gamme === 'premium') score += PREMIUM_BOOST;
       if (activeUnivers && p.univers?.[activeUnivers]) score += p.univers[activeUnivers] * 0.3;
       if (!p.image_url) score -= 0.5;
       return score;
@@ -330,6 +365,33 @@ export function CatalogueClient({ products, initialCategorie, packMode }: Catalo
 
         {/* Grille produits */}
         <div className="flex-1 min-w-0">
+          {/* Chips sous-postes Vignoble */}
+          {isVignobleActive && vignoblePosteCounts && (
+            <div className="mb-4 -mx-1 px-1 overflow-x-auto">
+              <div className="flex gap-2 flex-nowrap pb-1">
+                <button
+                  onClick={() => updateFilter('univers', 'vignoble')}
+                  className={`shrink-0 px-3 py-1.5 text-xs rounded-full border transition-colors ${filters.univers === 'vignoble' ? 'bg-neutral-900 text-white border-neutral-900' : 'border-neutral-200 text-neutral-600 hover:border-neutral-400'}`}
+                >
+                  Tous postes <span className="opacity-60">({vignoblePosteCounts.vignoble})</span>
+                </button>
+                {Object.entries(VIGNOBLE_POSTES_LABELS).map(([key, label]) => {
+                  const count = vignoblePosteCounts[key] || 0;
+                  if (count === 0) return null;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => updateFilter('univers', key)}
+                      className={`shrink-0 px-3 py-1.5 text-xs rounded-full border transition-colors ${filters.univers === key ? 'bg-neutral-900 text-white border-neutral-900' : 'border-neutral-200 text-neutral-600 hover:border-neutral-400'}`}
+                    >
+                      {label} <span className="opacity-60">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Compteur */}
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-neutral-400">
