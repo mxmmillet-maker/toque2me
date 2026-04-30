@@ -68,7 +68,20 @@ function ConfigurateurContent() {
         body: JSON.stringify({ context: ctx }),
       });
       const data = await res.json();
-      setLivePreview((data.products || []).slice(0, 4));
+      // Garder 1 produit par typologie demandée (sinon doublon visible).
+      // Fallback à 4 quand aucune typologie n'est encore choisie.
+      const products = data.products || [];
+      const limit = ctx.typologies?.length || 4;
+      const seen = new Set<string>();
+      const dedup: any[] = [];
+      for (const p of products) {
+        const key = (p.categorie || '').toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedup.push(p);
+        if (dedup.length >= limit) break;
+      }
+      setLivePreview(dedup);
     } catch {
       setLivePreview([]);
     } finally {

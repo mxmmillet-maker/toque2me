@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { MarquageSimulator } from '@/components/marquage/MarquageSimulator';
 
 interface Color {
@@ -28,13 +27,11 @@ export function ColorSelector({ colors, defaultImage, productName }: ColorSelect
       {/* Image principale */}
       <div className="relative aspect-square bg-neutral-50 rounded-xl overflow-hidden">
         {currentImage ? (
-          <Image
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
             src={currentImage}
             alt={`${productName}${selected ? ` — ${selected.nom}` : ''}`}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-contain p-4"
-            priority
+            className="absolute inset-0 w-full h-full object-contain p-4"
           />
         ) : (
           <div className="flex items-center justify-center h-full text-neutral-300 text-sm">

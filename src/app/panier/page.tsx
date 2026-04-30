@@ -2,23 +2,29 @@
 
 import { useCart } from '@/lib/cart';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { DevisContactModal, DevisContact } from '@/components/devis/DevisContactModal';
 
 export default function PanierPage() {
   const { items, groupes, count, remove, updateQty, updateCouleur, moveToGroupe, addGroupe, removeGroupe, renameGroupe, clear } = useCart();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
   const [newGroupe, setNewGroupe] = useState('');
   const [editingGroupe, setEditingGroupe] = useState<string | null>(null);
   const [editGroupeName, setEditGroupeName] = useState('');
 
   const totalEstime = items.reduce((sum, i) => sum + (i.prix_from || 0) * i.qty, 0);
 
-  const genererDevis = async () => {
+  const openDevisModal = () => {
     if (items.length === 0) return;
+    setError('');
+    setModalOpen(true);
+  };
+
+  const submitDevis = async (contact: DevisContact) => {
     setLoading(true);
     setError('');
 
@@ -27,6 +33,7 @@ export default function PanierPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          contact,
           lignes: items.map(i => ({
             ref: i.ref,
             qty: i.qty,
@@ -41,6 +48,7 @@ export default function PanierPage() {
       }
 
       const data = await res.json();
+      setModalOpen(false);
       clear();
       router.push(`/devis/${data.share_token}`);
     } catch (e: any) {
@@ -184,12 +192,12 @@ export default function PanierPage() {
                           {/* Image */}
                           <Link href={`/catalogue/${item.ref}`} className="flex-shrink-0">
                             {item.image_url ? (
-                              <Image
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
                                 src={item.image_url}
                                 alt={item.nom}
-                                width={64}
-                                height={64}
                                 className="w-16 h-16 object-contain rounded-lg bg-neutral-50"
+                                loading="lazy"
                               />
                             ) : (
                               <div className="w-16 h-16 bg-neutral-50 rounded-lg flex items-center justify-center text-neutral-300 text-xs">
@@ -343,7 +351,7 @@ export default function PanierPage() {
                 )}
 
                 <button
-                  onClick={genererDevis}
+                  onClick={openDevisModal}
                   disabled={loading || items.length === 0}
                   className="w-full px-5 py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 active:bg-neutral-950 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -361,6 +369,13 @@ export default function PanierPage() {
           </div>
         )}
       </div>
+      <DevisContactModal
+        open={modalOpen}
+        onCancel={() => { if (!loading) setModalOpen(false); }}
+        onSubmit={submitDevis}
+        submitting={loading}
+        error={error}
+      />
     </main>
   );
 }

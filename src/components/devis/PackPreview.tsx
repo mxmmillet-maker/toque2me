@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 
 interface Ligne {
   nom: string;
@@ -56,12 +55,12 @@ export function PackPreview({ lignes }: { lignes: Ligne[] }) {
                 {lignes.map((l, i) => (
                   <div key={i} className="bg-neutral-50 rounded-xl p-3 flex flex-col items-center">
                     {l.image_url ? (
-                      <Image
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
                         src={l.image_url}
                         alt={l.nom}
-                        width={200}
-                        height={200}
                         className="w-full aspect-square object-contain rounded-lg mb-2"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="w-full aspect-square bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-300 text-sm mb-2">

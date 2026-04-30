@@ -1,7 +1,6 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import Image from 'next/image';
 import { useCart } from '@/lib/cart';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -102,7 +101,8 @@ export function LivePreviewSidebar({ products, loading, nbPersonnes, title = 'Vo
             >
               <div className="relative w-12 h-12 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
                 {p.image_url && (
-                  <Image src={p.image_url} alt={p.nom} fill className="object-contain p-1" sizes="48px" />
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={p.image_url} alt={p.nom} className="absolute inset-0 w-full h-full object-contain p-1" loading="lazy" />
                 )}
               </div>
               <div className="flex-1 min-w-0">

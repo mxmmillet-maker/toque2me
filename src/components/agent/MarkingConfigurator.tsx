@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Image from 'next/image';
 
 interface Zone {
   id: string;
@@ -56,7 +55,8 @@ export function MarkingConfigurator({ productImage, productName, zones, onConfir
 
       {/* Produit avec zones cliquables */}
       <div className="relative aspect-square bg-neutral-50 rounded-xl overflow-hidden max-w-sm mx-auto">
-        <Image src={productImage} alt={productName} fill className="object-cover" sizes="400px" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={productImage} alt={productName} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
 
         {/* Zones SVG */}
         <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">

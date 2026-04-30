@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 
 interface Variante {
@@ -61,7 +60,8 @@ export function ResultsStep({ products, onRefine }: ResultsStepProps) {
             >
               <div className="relative w-20 h-20 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
                 {p.image_url ? (
-                  <Image src={p.image_url} alt={p.nom} fill className="object-cover" sizes="80px" />
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={p.image_url} alt={p.nom} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <div className="flex items-center justify-center h-full text-neutral-300 text-xs">N/A</div>
                 )}

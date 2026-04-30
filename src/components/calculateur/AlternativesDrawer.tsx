@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface Alternative {
@@ -271,12 +270,12 @@ export function AlternativesDrawer({
                           {/* Image */}
                           <div className="relative w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
                             {alt.image_url ? (
-                              <Image
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
                                 src={alt.image_url}
                                 alt={alt.nom}
-                                fill
-                                className="object-cover"
-                                sizes="64px"
+                                className="absolute inset-0 w-full h-full object-cover"
+                                loading="lazy"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-neutral-300">

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { AlternativesDrawer } from './AlternativesDrawer';
 import { MarkingPopup, type MarkingConfig } from './MarkingPopup';
 import { SizeDistributionPopup } from './SizeDistributionPopup';
+import { DevisContactModal, DevisContact } from '@/components/devis/DevisContactModal';
 
 interface Product {
   nom: string;
@@ -84,6 +84,8 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
   const [lines, setLines] = useState<LinePricing[]>(buildInitialLines);
   const [, setVariantePricing] = useState<Map<string, { prix_unitaire_ht: number; total_ht: number }>>(new Map());
   const [submitting, setSubmitting] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [devisError, setDevisError] = useState('');
 
   // Drawer alternatives
   const [drawerOpen, setDrawerOpen] = useState<{ index: number; ref: string; nom: string; categorie: string } | null>(null);
@@ -241,8 +243,14 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
   const totalTTC = totalAvecPort + tva;
   const allLoaded = lines.every((l) => !l.loading);
 
-  const handleDevis = async () => {
+  const openDevisModal = () => {
+    setDevisError('');
+    setModalOpen(true);
+  };
+
+  const submitDevis = async (contact: DevisContact) => {
     setSubmitting(true);
+    setDevisError('');
     try {
       // Générer les lignes du devis (éclater les paires H/F en 2 lignes)
       const devisLignes: { ref: string; qty: number }[] = [];
@@ -261,11 +269,17 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
       const res = await fetch('/api/devis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lignes: devisLignes }),
+        body: JSON.stringify({ contact, lignes: devisLignes }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Erreur ${res.status}`);
+      }
       const data = await res.json();
+      setModalOpen(false);
       window.open(`/api/devis/pdf?token=${data.share_token}`, '_blank');
+    } catch (e: any) {
+      setDevisError(e.message || 'Erreur lors de la génération du devis');
     } finally {
       setSubmitting(false);
     }
@@ -315,7 +329,8 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
             <div className="flex gap-4 items-start">
               {product?.image_url && (
                 <div className="relative w-16 h-16 bg-neutral-50 rounded-lg overflow-hidden flex-shrink-0">
-                  <Image src={product.image_url} alt={line.nom} fill className="object-cover" sizes="64px" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={product.image_url} alt={line.nom} className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
@@ -460,12 +475,20 @@ export function CalculateurMultiClient({ products, paires = [] }: CalculateurMul
 
       {/* CTA */}
       <button
-        onClick={handleDevis}
+        onClick={openDevisModal}
         disabled={submitting || !allLoaded || totalHT === 0}
         className="w-full py-3 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-wait transition-colors"
       >
         {submitting ? 'Génération en cours...' : 'Générer mon devis PDF'}
       </button>
+
+      <DevisContactModal
+        open={modalOpen}
+        onCancel={() => { if (!submitting) setModalOpen(false); }}
+        onSubmit={submitDevis}
+        submitting={submitting}
+        error={devisError}
+      />
       <p className="text-xs text-neutral-400 text-center">
         Devis gratuit — validité 30 jours — {lines.length} produit{lines.length > 1 ? 's' : ''}
       </p>

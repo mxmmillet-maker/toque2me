@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 import { getZonesForCategory, TECHNIQUES, type MarkingZone, type TechniqueId } from '@/lib/marking-zones';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -200,7 +199,8 @@ export function MarkingPopup({ isOpen, onClose, product, qty, deadline, onConfir
         {product.image_url && (
           <div className="px-5 pt-4">
             <div className="relative w-32 h-32 mx-auto bg-neutral-50 rounded-lg overflow-hidden">
-              <Image src={product.image_url} alt={product.nom} fill className="object-contain" sizes="128px" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={product.image_url} alt={product.nom} className="absolute inset-0 w-full h-full object-contain" loading="lazy" />
             </div>
           </div>
         )}

@@ -163,6 +163,8 @@ export const STATIC_STEPS: QualificationStep[] = [
     id: 'occasion',
     question: 'Bonjour ! C\'est pour quelle occasion ?',
     type: 'single',
+    // Skip si occasion déjà connue (prefill depuis HP packs / pages secteur).
+    condition: (ctx) => !ctx.occasion,
     options: [
       { value: 'evenement',     label: 'Un événement',         emoji: '🎉', sub: 'Salon, séminaire, soirée, team building' },
       { value: 'quotidien',     label: 'Le quotidien pro',     emoji: '💼', sub: 'Tenue d\'équipe, vêtement de travail' },
@@ -179,7 +181,8 @@ export const STATIC_STEPS: QualificationStep[] = [
     id: 'secteur',
     question: 'Dans quel secteur ?',
     type: 'single',
-    condition: (ctx) => ctx.occasion === 'workwear',
+    // Skip si on a déjà un secteur (prefill /btp, /sante, etc.) ou si occasion ≠ workwear.
+    condition: (ctx) => ctx.occasion === 'workwear' && !ctx.secteur,
     options: [
       { value: 'restauration',  label: 'Restauration',          emoji: '🍳' },
       { value: 'btp',           label: 'BTP / Construction',     emoji: '🏗️' },
@@ -197,6 +200,8 @@ export const STATIC_STEPS: QualificationStep[] = [
     id: 'approche',
     question: 'Vous avez déjà une idée de ce qu\'il vous faut ?',
     type: 'single',
+    // Skip si typologies déjà connues (prefill depuis pack HP) — l'approche est implicite.
+    condition: (ctx) => !ctx.approche && !(ctx.typologies && ctx.typologies.length > 0),
     options: [
       { value: 'idee',  label: 'Oui, je sais ce qu\'il me faut', emoji: '💡', sub: 'On passe aux détails textile' },
       { value: 'guide', label: 'Non, j\'ai besoin de conseils',   emoji: '🧭', sub: 'Décrivez votre projet, on vous guide' },
@@ -225,7 +230,8 @@ export const STATIC_STEPS: QualificationStep[] = [
     type: 'multi',
     options: [], // rempli dynamiquement via getTypologyOptions()
     preselect: (ctx) => PIECES_PAR_OCCASION[ctx.occasion || ''] || [],
-    condition: (ctx) => ctx.approche !== 'guide',
+    // Skip si typologies déjà fournies (prefill pack HP) ou si on est sur le flow guide (brief libre).
+    condition: (ctx) => ctx.approche !== 'guide' && !(ctx.typologies && ctx.typologies.length > 0),
   },
 
   // ── Les étapes 4 (style+couleur par pièce) sont générées dynamiquement ──
